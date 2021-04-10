@@ -1,20 +1,18 @@
 ## CS1430 Final
 
-This project is a reimplementation of the the [following paper](http://richzhang.github.io/colorization/) on Image colorization for Brown's CS1470
+This project is a reimplementation of the the [following paper](https://arxiv.org/pdf/2002.05638.pdf) on Image to Illustration translation using GANs for Brown's CS1430
 Computer Vision course, created in Spring 2021. 
 
-Preprocessing notes
-- Train / Validation / Test 
-- all color images
-- when need grayscale, convert.
-
 #### TODO
-- GCP set up VM + Buckets [Katherine]
-- Preprocessing [Zoe, Liyaan]
-  - Split-folders (python lib for train/test/validation set)?
-  - Gray + resize image for training
-- Model [Katherine, Minna]
-  - Model Pipline - Proj 4 code?
-  - Architecture
+- [x] GCP set up VM + Buckets [Katherine]
+- [ ] Preprocessing 
+  - [ ] Scrape illustration data from OpenLibrary
+  - [ ] Get landscape data from SUN dataset
+  - [x] Scrape Miyazaki images from Google Images [Minna, Katherine]
+  - [ ] Write preprocessing script to prepare images for model
+- [ ] Model 
+  - [ ] Write script to run pipeline
+  - [ ] Set up tensorboard
+  - [ ] Model architecture
 
 - Project 1 Report [all]
