@@ -3,6 +3,10 @@
 This project is a reimplementation of the the [following paper](https://arxiv.org/pdf/2002.05638.pdf) on Image to Illustration translation using GANs for Brown's CS1430
 Computer Vision course, created in Spring 2021. 
 
+
+The data for this model can be found [here](https://github.com/artset/cs1430-final-data)
+
+
 #### TODO
 - [x] GCP set up VM + Buckets [Katherine]
 - [ ] Preprocessing 
