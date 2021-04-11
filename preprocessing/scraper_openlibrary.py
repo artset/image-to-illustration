@@ -23,12 +23,12 @@ def u_to_s(uni):
 class OpenLibHelper(object):
     
     def __init__(self, login, pw):
-        profile = webdriver.FirefoxProfile()
-        profile.set_preference("browser.download.folderList", 2)
-        profile.set_preference("browser.download.manager.showWhenStarting", False)
-        profile.set_preference("browser.download.dir", "./")
-        profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "image/jpeg")
-        self.browser = webdriver.Firefox(firefox_profile=profile)
+        # profile = webdriver.ChromeProfile()
+        # profile.set_preference("browser.download.folderList", 2)
+        # profile.set_preference("browser.download.manager.showWhenStarting", False)
+        # profile.set_preference("browser.download.dir", "./")
+        # profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "image/jpeg")
+        self.browser = webdriver.Chrome(executable_path='../../../chromedriver')
         self.browser.maximize_window()
         # self.browser.find_element_by_xpath('/html/body').send_keys(Keys.F11)
         self.browser.get("https://openlibrary.org/account/login")
@@ -61,19 +61,24 @@ class OpenLibHelper(object):
                 main_window = self.browser.current_window_handle
 
                 # open result in new tab
-                # borrow_button = element.find_element_by_xpath("//div[@class='searchResultItemCTA']//div[@class='searchResultItemCTA-lending']")
+                #borrow_button = element.find_element_by_xpath("//div[@class='searchResultItemCTA']//div[@class='searchResultItemCTA-lending']")
                 borrow_button_first = element.find_element_by_tag_name('a')
-                borrow_button_first.send_keys(Keys.CONTROL + Keys.RETURN)
+                actions = ActionChains(self.browser)
+                actions.key_down(Keys.COMMAND).click(borrow_button_first).perform()
+                #borrow_button_first.send_keys(Keys.CONTROL + "t") #Keys.RETURN)
                 randdelay(5, 7) # wait for new tab to load
 
                 # Get windows list and put focus on new window (which is on the 1st index in the list)
                 windows = self.browser.window_handles
                 self.browser.switch_to.window(windows[1])
                 # do whatever you have to do on this page, we will just got to sleep for now
-                randdelay(7, 11)
+                randdelay(5, 7)
 
+                print("hi Liyaan!")
                 title = self.browser.find_element_by_xpath(
-                    "//body[@id='user']//div[@id='test-body-mobile']//div[@class='contentContainer']//div[@id='contentHead']//span[@itemprop='name']").text
+                    "//body[@class=' client-js']//div[@id='test-body-mobile']//div[@id='contentBody']//div[@class='workDetails']//div[@class='editionAbout']//h1[@class='work-title']").text
+                print("made it to 80 ")
+                print(title)
                 if (book_list) and (not title.lower() in book_list):
                     raise Exception('Book is not in the list!')
 
@@ -94,15 +99,18 @@ class OpenLibHelper(object):
                     #     continue # no loans available so move to the next book.
 
                 borrow_button_second.click()
-                randdelay(20, 23)
+                randdelay(7, 11)
                 #switch to one page
                 one_page = self.browser.find_element_by_xpath(
-                    "//div[@id='IABookReaderWrapper']//div[@id='BookReader']//div[@class='BRfooter']//div[@class='BRnav BRnavDesktop']//div[@class='BRpage']//button[@bt-xtitle='One-page view']")
+                    "//body[@class='navia ia-module tiles responsive lendable-book lendable-book-read BRlending BRfullscreenActive']//div[@id='wrap']//main[@id='maincontent']//div[@id='theatre-ia-wrap']//div[@id='theatre-ia']//div[@class='row']//div[@class='xs-col-12 ']//item-navigator[@class='focus-on-child-only']//div[@id='IABookReaderWrapper']//div[@id='BookReader']//div[@class='BRfooter']//div[@class='BRnav BRnavDesktop']//nav[@class='BRcontrols']//ul[@class='controls']//button[@class='BRicon onepg']")
+                print("holla1")
                 one_page.click()
+                print("holla")
 
                 # now take source text, we will use it to generate full URLs
                 page_data = self.browser.page_source
                 page_list = page_data.splitlines()
+                print(page_list)
                 # find the item index similar to this:
                 # url: '//ia903101.us.archive.org/BookReader/BookReaderJSIA.php?id=lettherebelight0000unse&itemPath=
                 # /5/items/lettherebelight0000unse&server=ia903101.us.archive.org&format=jsonp&subPrefix=
