@@ -7,9 +7,9 @@ Computer Vision course, created in Spring 2021.
 - [x] GCP set up VM + Buckets [Katherine]
 - [ ] Preprocessing 
   - [ ] Scrape illustration data from OpenLibrary
-  - [ ] Get landscape data from SUN dataset
+  - [ ] Get landscape data from SUN dataset/Kaggle [Zoe, Liyaan]
   - [x] Scrape Miyazaki images from Google Images [Minna, Katherine]
-  - [ ] Write preprocessing script to prepare images for model
+  - [ ] Write preprocessing script to prepare images for model 
 - [ ] Model 
   - [ ] Write script to run pipeline
   - [ ] Set up tensorboard
