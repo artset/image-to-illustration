@@ -155,7 +155,7 @@ Tutorial: https://machinelearningmastery.com/how-to-implement-pix2pix-gan-models
 """
 class Discriminator(tf.keras.Model):
     def __init__(self):
-        super(Generator, self).__init__()
+        super(Discriminator, self).__init__()
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=hp.learning_rate)
 

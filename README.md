@@ -18,5 +18,7 @@ The data for this model can be found [here](https://github.com/artset/cs1430-fin
   - [ ] Write script to run pipeline
   - [ ] Set up tensorboard
   - [ ] Model architecture
-
+    - [ ] Generator
+    - [ ] Discriminator
+    - [ ] Ganilla model that puts everything together
 - Project 1 Report [all]
