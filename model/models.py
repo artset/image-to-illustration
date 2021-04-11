@@ -6,7 +6,7 @@ Brown University
 
 import tensorflow as tf
 from tensorflow.keras.layers import \
-    Conv2D, MaxPool2D, Dropout, Flatten, Dense, AveragePooling2D
+    Conv2D, MaxPool2D, Dropout, Flatten, Dense, AveragePooling2D, BatchNormalization, ZeroPadding2D
 
 import hyperparameters as hp
 
@@ -162,20 +162,50 @@ class Discriminator(tf.keras.Model):
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=hp.learning_rate)
 
-        KERNEL_SIZE = 3
+        KERNEL_SIZE = 4
+        STRIDE = 2
+        RELU = .2
         
         #TODO: Model, this has not been started really.
         self.layers = [
-            Conv2D(filters=64, kernel_size=KERNEL_SIZE, strides=1, padding="same", name="block1_conv1", activation="relu"),
-            Conv2D(filters=64, kernel_size=KERNEL_SIZE, strides=1, padding="same", name="block1_conv2", activation="relu"),
+            Conv2D(filters=64, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block1_conv2"),
+            BatchNormalization(),
+            LeakyReLU(RELU),
 
-            Conv2D(filters=128, kernel_size=KERNEL_SIZE, strides=1, padding="same", name="block2_conv1", activation="relu"),
-            Conv2D(filters=128, kernel_size=KERNEL_SIZE, strides=1, padding="same", name="block2_conv2", activation="relu"),
+            Conv2D(filters=128, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block2_conv1"),
+            BatchNormalization(),
+            LeakyReLU(RELU),
 
-            Conv2D(filters=256, kernel_size=KERNEL_SIZE, strides=1, padding="same", name="block3_conv1", activation="relu"),
-            Conv2D(filters=256, kernel_size=KERNEL_SIZE, strides=1, padding="same", name="block3_conv2", activation="relu"),
+            Conv2D(filters=256, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block2_conv1"),
+            BatchNormalization(),
+            LeakyReLU(RELU),
+            ZeroPadding2D(),
 
+            Conv2D(filters=512, kernel_size=KERNEL_SIZE, strides=1, padding="valid", name="block3_conv1"),
+            BatchNormalization(),
+            LeakyReLU(RELU),
+            ZeroPadding2D(),
+
+            Conv2D(filters=1, kernel_size=KERNEL_SIZE, strides=1, padding="valid", activation="sigmoid", name="block4_conv1")
         ]
+
+        # in: 64, out:128
+        # batchnorm 2d 128
+        # leaky relu
+        # ----
+        # in: 128 out: 256
+        # batchnorm 2d 256
+        # leaky relu
+        # ---
+
+        # 256, 512
+        # stride = 1
+        # batch norm 2d: 512
+        # leaky relu
+
+        # --- Dense layer? :0
+        # 512->1, stride=1
+        # sigmoid
 
 
     def call(self, x):
@@ -183,11 +213,15 @@ class Discriminator(tf.keras.Model):
         return x
 
     @staticmethod
-    def loss_fn(labels, predictions):
+    def loss_fn(disc_fake_output, disc_real_output):
         """ Loss function for model. """
+        bce = tf.keras.losses.BinaryCrossentropy()
 
-        # TODO: Select a loss function for your network (see the documentation
-        #       for tf.keras.losses)
+        # wants to maximize correctly classifying the reals as reals and the fakes as fakes
+        # ground truth: all 1's for real, all 0's for fake
+        # predicted: disc_real_output, disc_fake_output
 
-        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False)
-        return loss(labels, predictions)
+        truth_real = tf.ones_like(disc_real_output)
+        truth_fake = tf.zeros_like(disc_fake_output)
+
+        return bce(truth_real, disc_real_output) + bce(truth_fake, disc_fake_output)
