@@ -131,10 +131,10 @@ class OpenLibHelper(object):
                 # url: '//ia903101.us.archive.org/BookReader/BookReaderJSIA.php?id=lettherebelight0000unse&itemPath=
                 # /5/items/lettherebelight0000unse&server=ia903101.us.archive.org&format=jsonp&subPrefix=
                 # lettherebelight0000unse&requestUri=/stream/lettherebelight0000unse&version=mHe9koCz',
-                # for i in range(len(page_list)):
-                # 	print("THIS is i")
-                # 	print(i)
-                # 	print(page_list[i])
+                for i in range(len(page_list)):
+                	print("THIS is i")
+                	print(i)
+                	print(page_list[i])
 
                 str___ = page_list[262]  # this index may change if site is updated!
                 print(str___)
@@ -173,12 +173,12 @@ class OpenLibHelper(object):
                         page_num = '0' + str(j+1)
 
                     file_path = dir_name + "/page_{PAGE_NUM}.png".format(PAGE_NUM=page_num)
-
                     source_URL = "https://" + tk2 + '.' + tk3 + '.' + tk4 + '.' + \
                                  tk5 + '/' + tk6 + "/BookReaderImages.php?zip=/" + tk12 + "/" + \
                                  tk13 + "/" + tk14 + '/' + tk14 + "_jp2.zip&file=" + \
-                                 tk14 + "_jp2/" + tk14 + "_{PAGE_NUM}".format(PAGE_NUM=page_num) + ".jp2&scale=1&rotate=0"
-
+                                 tk14 + "_jp2/" + tk14 + "_{PAGE_NUM}".format(PAGE_NUM=page_num) + ".jp2&id=" + tk14 + "&scale=1&rotate=0"
+                    print("SOURCE_URL")
+                    print(source_URL)
                     scripttt = '''window.open('{link}')'''.format(link=source_URL) #,'_blank'
                     self.browser.execute_script(scripttt)
                     # Get windows list and put focus on new window (which is on the 2nd index in the list)
