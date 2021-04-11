@@ -53,9 +53,9 @@ class Generator(tf.keras.Model):
 
         self.block1 = [
             Conv2D(filters=64, kernel_size=7, strides=1, padding="same", name="block1_conv1"),
-            InstanceNormalization(axis=-1),
+            BatchNorm(),
             Activation("relu") # seems to go after normalization not CONV2D, need to fact check if this is legit
-            MaxPool2D(2, name="block1_conv1"),   
+            # MaxPool2D(2, name="block1_conv1"),   
         ]
 
         #TODO: Upsampling
@@ -96,13 +96,41 @@ class Generator(tf.keras.Model):
         mod_resnet = [
             Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(2,2), padding="same", 
                 kernel_initializer=KERNEL_INIT, name="conv1"),
-            InstanceNormalization(axis=-1),
+            BatchNormalization(),
             Activation("relu"),
             MaxPool2d(strides=2),
             Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(2,2), padding="same", 
-                kernel_initializer=KERNEL_INIT, name="conv1"),
-            InstanceNormalization(axis=-1),
+                kernel_initializer=KERNEL_INIT, name="conv2"),
+            BatchNormalization(),
         ]
+        
+        #### DOWNSAMPLING 
+
+        # 64 , 128 kernel = 3, stride = 2
+        # batch normalization
+        # relu
+
+        # 128, 256, kernel = 3, s=2
+        # batch normalization
+        # relu
+
+        # 4 resnet blocks
+
+        # out features: 64
+
+        #### UPSAMPLING
+
+        # conv2d transpose 128, 64, k=3, s=2,
+        # batchnorm
+        # relu
+
+        # conv2d tranpose 64, 32 k=3, s=2
+        # batchnorm
+        # relu
+
+        # reflection pad(3)
+        # conv2d 64 -> output image, k=7
+        # tanh activation
         
         output = inputs
         for l in mod_resnet:
@@ -169,24 +197,21 @@ class Discriminator(tf.keras.Model):
         #TODO: Model, this has not been started really.
         self.layers = [
             Conv2D(filters=64, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block1_conv2"),
-            BatchNormalization(),
             LeakyReLU(RELU),
 
             Conv2D(filters=128, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block2_conv1"),
-            BatchNormalization(),
+            BatchNormalization(), # Instance normalization
             LeakyReLU(RELU),
 
             Conv2D(filters=256, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block2_conv1"),
             BatchNormalization(),
             LeakyReLU(RELU),
-            ZeroPadding2D(),
 
-            Conv2D(filters=512, kernel_size=KERNEL_SIZE, strides=1, padding="valid", name="block3_conv1"),
+            Conv2D(filters=512, kernel_size=KERNEL_SIZE, strides=1, padding="same", name="block3_conv1"),
             BatchNormalization(),
             LeakyReLU(RELU),
-            ZeroPadding2D(),
 
-            Conv2D(filters=1, kernel_size=KERNEL_SIZE, strides=1, padding="valid", activation="sigmoid", name="block4_conv1")
+            Conv2D(filters=1, kernel_size=KERNEL_SIZE, strides=1, padding="same", activation="sigmoid", name="block4_conv1")
         ]
 
         # in: 64, out:128
