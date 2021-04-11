@@ -44,6 +44,11 @@ def parse_args():
         default='..'+os.sep+'data'+os.sep,
         help='Location where the dataset is stored.')
     parser.add_argument(
+        '--load-vgg',
+        default='vgg16_imagenet.h5',
+        help='''Path to pre-trained VGG-16 file (only applicable to
+        task 3).''')
+    parser.add_argument(
         '--load-checkpoint',
         default=None,
         help='''Path to model checkpoint file (should end with the
@@ -181,6 +186,8 @@ def main():
     # set relative to the directory of run.py
     if os.path.exists(ARGS.data):
         ARGS.data = os.path.abspath(ARGS.data)
+    if os.path.exists(ARGS.load_vgg):
+        ARGS.load_vgg = os.path.abspath(ARGS.load_vgg)
 
     # Run script from location of run.py
     os.chdir(sys.path[0])
@@ -210,6 +217,9 @@ def main():
         model.vgg16.summary()
         model.head.summary()
 
+        # Load base of VGG model
+        print("loading...", ARGS.load_vgg)
+        model.vgg16.load_weights(ARGS.load_vgg, by_name=True)
 
     # Load checkpoints
     if ARGS.load_checkpoint is not None:

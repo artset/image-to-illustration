@@ -103,8 +103,11 @@ class Generator(tf.keras.Model):
                 kernel_initializer=KERNEL_INIT, name="conv1"),
             InstanceNormalization(axis=-1),
         ]
+        
+        output = inputs
+        for l in mod_resnet:
+            output = mod_resent(output)
 
-        output = mod_resent(inputs)
         result = Concatenate()([output, inputs])
 
         final_layer = [
