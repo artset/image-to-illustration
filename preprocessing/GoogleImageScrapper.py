@@ -80,20 +80,20 @@ class GoogleImageScraper():
                 #select image from the popup
                 time.sleep(1)
                 class_names = ["n3VNCb"]
+                # maybe not necessary for extensibility
                 # images = [driver.find_elements_by_class_name(class_name) for class_name in class_names if len(driver.find_elements_by_class_name(class_name)) != 0 ][0]
                 images = driver.find_elements_by_class_name("n3VNCb")
-                # print("iMAGE LENGTH", len(images))
                 for image in images:
                     # print("GET ATTRIBUTE SOURCE", image.get_attribute("src"))
                     #only download images that starts with http
                     attr = image.get_attribute("src")
                     if(image.get_attribute("src")[:4].lower() in ["http"] ):
+                        # prevents appending of static preview images
                         if not attr.startswith("https://encrypted-tbn0.gstatic.com/") and not attr.endswith(".gif"):
                             print("%d. %s"%(count,image.get_attribute("src")))
                             image_urls.append(image.get_attribute("src"))
                             count +=1
                             # break
-                # print("-----------------------------------------------")
             except Exception:
                 print("[-] Unable to get link")   
                 
@@ -133,6 +133,7 @@ class GoogleImageScraper():
                     with open(image_path, 'wb') as f:
                         f.write(image.content)
                         f.close()
+                        # only necessary if we do care about the resolution limit.
                         # image_from_web = Image.open(image_path)
                         # image_resolution = image_from_web.size
                         # if image_resolution != None:
