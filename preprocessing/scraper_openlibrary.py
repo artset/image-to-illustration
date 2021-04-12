@@ -28,7 +28,9 @@ class OpenLibHelper(object):
         # profile.set_preference("browser.download.manager.showWhenStarting", False)
         # profile.set_preference("browser.download.dir", "./")
         # profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "image/jpeg")
-        self.browser = webdriver.Chrome(executable_path='../../../chromedriver')
+        # self.browser = webdriver.Chrome(executable_path='../../../chromedriver')
+        self.browser = webdriver.Chrome(executable_path='/usr/local/bin/chromedriver')
+
         self.browser.maximize_window()
         # self.browser.find_element_by_xpath('/html/body').send_keys(Keys.F11)
         self.browser.get("https://openlibrary.org/account/login")
@@ -40,7 +42,6 @@ class OpenLibHelper(object):
         randdelay(5, 10)
 
     def search_author(self, author, data_folder, book_list=[]):
-
         searchElem = self.browser.find_element_by_name('q')
         searchElem.clear()
         searchElem.send_keys(author)
@@ -51,8 +52,7 @@ class OpenLibHelper(object):
         ## search results
         search_res = self.browser.find_element_by_id("searchResults")
         elementList = search_res.find_elements_by_tag_name("li")
-
-        # traverse results
+            # traverse results
         for i in range(len(elementList)):
             element = self.browser.find_element_by_id("searchResults").find_elements_by_tag_name("li")[i]
             try:
@@ -74,51 +74,42 @@ class OpenLibHelper(object):
                 # do whatever you have to do on this page, we will just got to sleep for now
                 randdelay(5, 7)
 
-                print("hi Liyaan!")
                 title = self.browser.find_element_by_xpath(
                     "//body[@class=' client-js']//div[@id='test-body-mobile']//div[@id='contentBody']//div[@class='workDetails']//div[@class='editionAbout']//h1[@class='work-title']").text
-                print("made it to 80 ")
+
                 print(title)
                 if (book_list) and (not title.lower() in book_list):
-                    raise Exception('Book is not in the list!')
+                    # raise Exception('Book is not in the list!')
+                    print("Book is not in list!")
+
+                    self.close()
+                    # Put focus back on main window
+                    self.browser.switch_to.window(main_window)
+                    
+                    continue
 
                 dir_name = data_folder + "/" + title
                 # if we already downloaded this book, move on!!
                 if os.path.exists(dir_name):
-                    raise Exception('Already downloaded this book!')  # Don't! If you catch, likely to hide bugs.
+                    # raise Exception('Already downloaded this book!')  # Don't! If you catch, likely to hide bugs.
+                    print("Already downloaded")
                 else: # else lets create a dir and download!
                     os.makedirs(dir_name)
 
                 #now click Borrow!! or maybe we already loaned this so try to read at least.
-                print("93")
-                try: 
-                	borrow_button_second = self.browser.find_element_by_xpath("/html/body/div[3]/div[2]/div[1]/div[1]/div/div/div[1]/div/div[3]/a[1]")
-                except:
-                    borrow_button_second = self.browser.find_element_by_link_text('Borrow')
-                    #print("FOUND BORROw")
-                #except:
-                    # try:
-                    #borrow_button_second = self.browser.find_element_by_link_text('Read')
-                    print("100")
-                    # except:
-                    #     continue # no loans available so move to the next book.
-
+                print("trying to find borrow button...")
+                borrow_button_second = self.browser.find_element_by_xpath('/html/body/div[3]/div[2]/div[1]/div[1]/div/div/div[1]/div/div[3]/a[1]')
                 borrow_button_second.click()
-                print("CLICKED")
-                #self.browser.close()
-                # get back to prev window!!!
-                windows = self.browser.window_handles
-                #self.browser.close()
-                print(windows)
-                self.browser.switch_to.window(windows[len(windows)-1])
-                randdelay(10, 31)
-                #switch to one page
-                try:
 
-                	print(self.browser.current_url)
-                	one_page = self.browser.find_element_by_xpath("/html/body/div[1]/main/div[2]/div[1]/div[1]/div/item-navigator/div/div/div[2]/div/nav/ul[2]/li[4]/button")
-                except:
-                	print("BROKE")
+                windows = self.browser.window_handles
+                self.browser.switch_to.window(windows[2])
+                randdelay(7, 11)
+                #switch to one page
+
+                print("101")
+                one_page = self.browser.find_element_by_xpath('/html/body/div[1]/main/div[2]/div[1]/div[1]/div/item-navigator/div/div/div[2]/div/nav/ul[2]/li[4]/button')
+                # one_page = self.browser.find_element_by_xpath(
+                #     "//body[@class='navia ia-module tiles responsive lendable-book lendable-book-read BRlending BRfullscreenActive']//div[@id='wrap']//main[@id='maincontent']//div[@id='theatre-ia-wrap']//div[@id='theatre-ia']//div[@class='row']//div[@class='xs-col-12 ']//item-navigator[@class='focus-on-child-only']//div[@id='IABookReaderWrapper']//div[@id='BookReader']//div[@class='BRfooter']//div[@class='BRnav BRnavDesktop']//nav[@class='BRcontrols']//ul[@class='controls']//button[@class='BRicon onepg']")
                 print("holla1")
                 one_page.click()
                 print("holla")
@@ -126,29 +117,21 @@ class OpenLibHelper(object):
                 # now take source text, we will use it to generate full URLs
                 page_data = self.browser.page_source
                 page_list = page_data.splitlines()
-                #print(page_list)
+                # print(page_list)
+                # for i in range(len(page_list)):
+                #     print(i, page_list[i])
                 # find the item index similar to this:
                 # url: '//ia903101.us.archive.org/BookReader/BookReaderJSIA.php?id=lettherebelight0000unse&itemPath=
                 # /5/items/lettherebelight0000unse&server=ia903101.us.archive.org&format=jsonp&subPrefix=
                 # lettherebelight0000unse&requestUri=/stream/lettherebelight0000unse&version=mHe9koCz',
-                # for i in range(len(page_list)):
-                # 	print("THIS is i")
-                # 	print(i)
-                # 	print(page_list[i])
-
                 str___ = page_list[262]  # this index may change if site is updated!
-                print(str___)
-                
                 aaa = str___.replace(" ", "") # remove heading whitespaces
-                print("aaaaaaa")
-                print(aaa)
-                print(type(aaa))
-                tokens_url = re.split(';|,|\.|/|=|&|', aaa) # now split into tokens
+                print("Link: ", aaa)
+                aaa = str(aaa)
+                tokens_url = re.split(';|,|\.|/|=|&', aaa) # now split into tokens
+                print(tokens_url)
                 # tk0 = tokens_url[0]
                 # tk1 = tokens_url[1]
-                print(tokens_url)
-
-                print("TOKENS URL")
                 tk2 = tokens_url[2] # this is similar to ia903101
                 tk3 = tokens_url[3] # us
                 tk4 = tokens_url[4] # archive
@@ -157,13 +140,21 @@ class OpenLibHelper(object):
                 tk12 = tokens_url[12]
                 tk13 = tokens_url[13]
                 tk14 = tokens_url[14]
-
-                print("idkkk")
+                
 
                 # here turn pages till end!!!
                 for j in range(1000): #adjust this to pages of a book
+                    print("turning pages...")
                     # print self.browser.current_url
-                    # str2 = "https://ia800706.us.archive.org/BookReader/BookReaderImages.php?zip=/35/items/billpeetautobiog00peet/billpeetautobiog00peet_jp2.zip&file=billpeetautobiog00peet_jp2/billpeetautobiog00peet_0019.jp2&scale=1&rotate=0"
+                    # str2 = "https://ia800706.us.archive.org/BookReader/BookReaderImages.php?zip=/35/items/billpeetautobiog00peet/billpeetautobiog00peet_jp2.zip&file=billpeetautobiog00peet_jp2/billpeetautobiog00peet_0019.jp2&id=christmascarolin20dick&scale=2&rotate=0"
+                    # tk2 = ia800706
+                    # tk3 = us
+                    # tk4 = archive
+                    # tk5 = org
+                    # tk6 = bookreader
+                    # tk12 = some number
+                    # tk13 = items
+                    # tk14 = something with the book name
                     page_num = '0001'
                     if j < 9:
                         page_num = '000' + str(j+1)
@@ -175,11 +166,12 @@ class OpenLibHelper(object):
                     file_path = dir_name + "/page_{PAGE_NUM}.png".format(PAGE_NUM=page_num)
 
                     source_URL = "https://" + tk2 + '.' + tk3 + '.' + tk4 + '.' + \
-                                 tk5 + '/' + tk6 + "/BookReaderImages.php?zip=/" + tk12 + "/" + \
-                                 tk13 + "/" + tk14 + '/' + tk14 + "_jp2.zip&file=" + \
-                                 tk14 + "_jp2/" + tk14 + "_{PAGE_NUM}".format(PAGE_NUM=page_num) + ".jp2&scale=1&rotate=0"
+                                    tk5 + '/' + tk6 + "/BookReaderImages.php?zip=/" + tk12 + "/" + \
+                                    tk13 + "/" + tk14 + '/' + tk14 + "_jp2.zip&file=" + \
+                                    tk14 + "_jp2/" + tk14 + "_{PAGE_NUM}".format(PAGE_NUM=page_num) + ".jp2&id=" + tk14 + "scale=1&rotate=0"
 
                     scripttt = '''window.open('{link}')'''.format(link=source_URL) #,'_blank'
+                    print("scripttt", scripttt)
                     self.browser.execute_script(scripttt)
                     # Get windows list and put focus on new window (which is on the 2nd index in the list)
                     windows = self.browser.window_handles
@@ -191,13 +183,14 @@ class OpenLibHelper(object):
                     try:
                         img = self.browser.find_element_by_tag_name('img')
                         # now lets get full image!!!
-                        self.browser.execute_script("arguments[0].setAttribute('class','overflowingVertical')", img)
-                        self.browser.execute_script("arguments[0].removeAttribute('width','')", img)
-                        self.browser.execute_script("arguments[0].removeAttribute('height','')", img)
+                        # self.browser.execute_script("arguments[0].setAttribute('class','overflowingVertical')", img)
+                        # self.browser.execute_script("arguments[0].removeAttribute('width','')", img)
+                        # self.browser.execute_script("arguments[0].removeAttribute('height','')", img)
 
                         img.screenshot(file_path)
                         randdelay(3, 5)
                     except:
+
                         # Close current window
                         self.browser.close()
                         # get back to prev window!!!
