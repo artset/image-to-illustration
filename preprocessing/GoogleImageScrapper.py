@@ -31,7 +31,8 @@ class GoogleImageScraper():
         self.number_of_images = number_of_images
         self.webdriver_path = webdriver_path
         self.image_path = image_path
-        self.url = "https://www.google.com/search?q=%s&source=lnms&tbm=isch&sa=X&ved=2ahUKEwie44_AnqLpAhUhBWMBHUFGD90Q_AUoAXoECBUQAw&biw=1920&bih=947"%(search_key)
+        # self.url = "https://www.google.com/search?q=%s&source=lnms&tbm=isch&sa=X&ved=2ahUKEwie44_AnqLpAhUhBWMBHUFGD90Q_AUoAXoECBUQAw&biw=1920&bih=947"%(search_key)
+        self.url = "https://www.google.com/search?q=miyazaki%20stills&tbm=isch&hl=en&tbs=rimg:CcmsE8taG5QYYafgbDcBX_133&sa=X&ved=0CAIQrnZqFwoTCNii-JrI-e8CFQAAAAAdAAAAABAH&biw=1390&bih=742"
         self.headless=headless
         self.min_resolution = min_resolution
         self.max_resolution = max_resolution

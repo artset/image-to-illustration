@@ -53,7 +53,9 @@ class OpenLibHelper(object):
         search_res = self.browser.find_element_by_id("searchResults")
         elementList = search_res.find_elements_by_tag_name("li")
             # traverse results
-        for i in range(len(elementList)):
+        print("element list size", len(elementList))
+        for i in range(15, len(elementList)):
+            print("-------------")
             element = self.browser.find_element_by_id("searchResults").find_elements_by_tag_name("li")[i]
             try:
 
@@ -143,7 +145,7 @@ class OpenLibHelper(object):
                 
 
                 # here turn pages till end!!!
-                for j in range(1000): #adjust this to pages of a book
+                for j in range(29, 1000): #adjust this to pages of a book
                     print("turning pages...")
                     # print self.browser.current_url
                     # str2 = "https://ia800706.us.archive.org/BookReader/BookReaderImages.php?zip=/35/items/billpeetautobiog00peet/billpeetautobiog00peet_jp2.zip&file=billpeetautobiog00peet_jp2/billpeetautobiog00peet_0019.jp2&id=christmascarolin20dick&scale=2&rotate=0"
@@ -227,6 +229,6 @@ class OpenLibHelper(object):
                 # Put focus back on main window
                 self.browser.switch_to.window(main_window)
                 continue
-
+    
     def close(self):
         self.browser.close()
