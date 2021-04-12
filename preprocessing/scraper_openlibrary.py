@@ -145,7 +145,7 @@ class OpenLibHelper(object):
             
 
             # here turn pages till end!!!
-            for j in range(30, 1000): #adjust this to pages of a book
+            for j in range(1000): #adjust this to pages of a book
                 print("turning pages...")
                 # print self.browser.current_url
                 # str2 = "https://ia800706.us.archive.org/BookReader/BookReaderImages.php?zip=/35/items/billpeetautobiog00peet/billpeetautobiog00peet_jp2.zip&file=billpeetautobiog00peet_jp2/billpeetautobiog00peet_0019.jp2&id=christmascarolin20dick&scale=2&rotate=0"
@@ -192,6 +192,7 @@ class OpenLibHelper(object):
                     img.screenshot(file_path)
                     randdelay(3, 5)
                 except:
+
                     # Close current window
                     self.browser.close()
                     # get back to prev window!!!
