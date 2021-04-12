@@ -115,3 +115,11 @@ console.error: Region.jsm: "Error fetching region" (new Error("TIMEOUT", "resour
 console.error: Region.jsm: "Failed to fetch region" (new Error("TIMEOUT", "resource://gre/modules/Region.jsm", 419))
 1618107473532	Marionette	INFO	Stopped listening on port 64185
 console.log: WebExtensions: reset-default-search: No addons in our list are installed.
+1618175810912	Marionette	INFO	Stopped listening on port 63965
+
+###!!! [Parent][RunMessage] Error: Channel closing: too late to send/recv, messages will be lost
+
+1618175814357	Marionette	INFO	Stopped listening on port 62279
+
+###!!! [Parent][RunMessage] Error: Channel closing: too late to send/recv, messages will be lost
+
