@@ -6,7 +6,7 @@ Brown University
 
 import tensorflow as tf
 from tensorflow.keras.layers import \
-    Conv2D, MaxPool2D, Dropout, Flatten, Dense, AveragePooling2D, BatchNormalization, ZeroPadding2D, Conv2DTranspose
+    Conv2D, MaxPool2D, Dropout, Flatten, Dense, AveragePooling2D, BatchNormalization, ZeroPadding2D, Conv2DTranspose, UpSampling2D
 
 import hyperparameters as hp
 
@@ -61,12 +61,23 @@ class Generator(tf.keras.Model):
 
 
         #TODO: Upsampling
-        self.upsample = [
-            # conv2d
-            Conv2DTranspose(filters=32, kernel_size=3, strides=2, padding="same", output_padding=1),
-            BatchNorm(),
-            Activation("relu")
+        # self.upsample = [
+        #     # conv2d
+        #     Conv2DTranspose(filters=32, kernel_size=3, strides=2, padding="same", output_padding=1),
+        #     BatchNorm(),
+        #     Activation("relu")
+        # ]
+
+        self.pre_upsample = [
+            #notsure about filters, strides, padding, or output padding here
+            Conv2DTranspose(filters=512, kernel_size=(1,1), padding="same", outpadding=1)
         ]
+
+        self.post_upsample = {
+            #notsure about filters, , padding, or output padding here
+            Conv2DTranspose(filters=64, kernel_size=(1,1), padding="same", outpadding=1),
+            Conv2DTranspose(filters=64, kernel_size=(7,7), padding="same", outpadding=1)
+        }
 
         # TODO add  upsmaplign function to resize after upsampling
 
@@ -74,16 +85,25 @@ class Generator(tf.keras.Model):
 
     def call(self, x):
         """ Passes the image through the network. """
-
+        # TODO: the TAN BLOCKS between skip connections appear to be conv layers needed to properly resize things so that they can be concatenated or summed togehter!!!!
+        # Need to add this to the resnet structure overal ^^
         x = self.block1(x)
 
         #TODO: a guess for the 4 downsampling blocks: call resnet on on 64, 128, 256 , 512
-        # og code seems do downsample twice
-        x = self.resnet(x, 64)
+        # og code seems do downsample twice ** currently up and down sampling twice like the diagram on page 5
+        #saving intermediate outputs for use in the upsampling skip connections
+        layer_1_out = self.resnet(x, 64)
+        layer_2_out = self.resnet(layer_1_out, 128)
+        layer_3_out = self.resnet(layer_2_out, 256)
+        x = self.resnet(layer_4_out, 512)
         # og code seems to upsample twice 
-        for i in range(2):
-            x = self.upsample(x)
-
+        x = self.pre_upsample(x)
+        x = self.upsample(x, layer_3_out)
+        x = self.upsample(x, layer_2_out)
+        x = self.upsample(x, layer_1_out)
+        #not sure about size here
+        tf.image.resize(image, size=[5,7], method="nearest")
+        x = self.post_upsample(x)
         # 
 
         return x
@@ -97,6 +117,16 @@ class Generator(tf.keras.Model):
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False)
         return loss(labels, predictions)
+
+    def upsample(inputs, skipinputs):
+        """Returns output of upsampling chunk with addition of skip connection layer"""
+        x = tf.image.resize(inputs, size=[5,7], method="nearest")
+        #TODO: convolve skipinput to be correct size and then sum with x 
+        #notsure about filters, kernel size, strides, padding, or output padding here
+        conv = Conv2DTranspose(filters=64, kernel_size=(1,1), padding="same", outpadding=1)
+        y = conv(skipinputs)
+        x += y
+        return 
     
     def resnet(inputs, filter_size):
         """ Returns the output of a single resnet block """
@@ -105,6 +135,9 @@ class Generator(tf.keras.Model):
 
         #NOTE: Not totally sure of the strides, this line is a bit confusing: 
         # "We halve feature map size in each layer except Layer-I using convolutions with stride of 2."
+        #Re above: from the paper it looks like in layers 2, 3, and 4 the skip connecton in the first block must be convolved to the correct
+        #size before concatenation
+
         KERNEL_INIT = RandomNormal(stddev=0.02) 
         KERNEL_SIZE = 3
         
@@ -158,6 +191,7 @@ class Generator(tf.keras.Model):
         ]
 
         return result
+        #NEED TO combind final_layer with above architecture
 
 
         # vanilla_resnet = [
