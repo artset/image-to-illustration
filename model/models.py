@@ -68,7 +68,8 @@ class Generator(tf.keras.Model):
             Activation("relu")
         ]
 
-        # Not sure why we would use resize??? 
+        # TODO add  upsmaplign function to resize after upsampling
+
         # use  tf.image.resize(image, size=[5,7], method="nearest") for upsampling, unsure about shape
 
     def call(self, x):
