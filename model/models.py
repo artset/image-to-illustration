@@ -35,13 +35,8 @@ class GANILLA(tf.keras.Model):
     @staticmethod
     def loss_fn(labels, predictions):
         """ Loss function for the model. """
-
-<<<<<<< HEAD
         # TODO: according to paper we need "two Minimax losses for each Generator and 
         # Discriminator pair and one cycle consistency loss (L1)"
-=======
-        # TODO: compute losses for all four models, then compute some cyclic loss.
->>>>>>> model
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False)
         return loss(labels, predictions)
@@ -138,14 +133,11 @@ class Generator(tf.keras.Model):
 
         #NOTE: Not totally sure of the strides, this line is a bit confusing: 
         # "We halve feature map size in each layer except Layer-I using convolutions with stride of 2."
-<<<<<<< HEAD
         #Re above: from the paper it looks like in layers 2, 3, and 4 the skip connecton in the first block must be convolved to the correct
         #size before concatenation
 
-=======
 
         #TODO: Ask about rescoping the model (pretrain some resnet layers, reduce learnable parameters)
->>>>>>> model
         KERNEL_INIT = RandomNormal(stddev=0.02) 
         KERNEL_SIZE = 3
         
