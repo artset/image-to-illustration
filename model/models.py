@@ -6,7 +6,7 @@ Brown University
 
 import tensorflow as tf
 from tensorflow.keras.layers import \
-    Conv2D, MaxPool2D, Dropout, Flatten, Dense, AveragePooling2D, BatchNormalization, ZeroPadding2D
+    Conv2D, MaxPool2D, Dropout, Flatten, Dense, AveragePooling2D, BatchNormalization, ZeroPadding2D, Conv2DTranspose
 
 import hyperparameters as hp
 
@@ -52,14 +52,23 @@ class Generator(tf.keras.Model):
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=hp.learning_rate)
 
         self.block1 = [
+            # original model seems to have a reflection pad??? unsure why
             Conv2D(filters=64, kernel_size=7, strides=1, padding="same", name="block1_conv1"),
             BatchNorm(),
             Activation("relu") # seems to go after normalization not CONV2D, need to fact check if this is legit
             # MaxPool2D(2, name="block1_conv1"),   
         ]
 
+
         #TODO: Upsampling
-        self.upsample = []
+        self.upsample = [
+            # conv2d
+            Conv2DTranspose(filters=32, kernel_size=3, strides=2, padding="same", output_padding=1),
+            BatchNorm(),
+            Activation("relu")
+        ]
+
+        # Not sure why we would use resize??? 
         # use  tf.image.resize(image, size=[5,7], method="nearest") for upsampling, unsure about shape
 
     def call(self, x):
@@ -68,8 +77,13 @@ class Generator(tf.keras.Model):
         x = self.block1(x)
 
         #TODO: a guess for the 4 downsampling blocks: call resnet on on 64, 128, 256 , 512
+        # og code seems do downsample twice
         x = self.resnet(x, 64)
-        x = self.upsample(x)
+        # og code seems to upsample twice 
+        for i in range(2):
+            x = self.upsample(x)
+
+        # 
 
         return x
 
