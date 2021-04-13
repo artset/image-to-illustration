@@ -36,8 +36,8 @@ class GANILLA(tf.keras.Model):
     def loss_fn(labels, predictions):
         """ Loss function for the model. """
 
-        # TODO: Select a loss function for your network (see the documentation
-        #       for tf.keras.losses)
+        # TODO: according to paper we need "two Minimax losses for each Generator and 
+        # Discriminator pair and one cycle consistency loss (L1)"
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False)
         return loss(labels, predictions)
