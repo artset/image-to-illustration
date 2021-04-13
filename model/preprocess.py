@@ -58,9 +58,16 @@ class Datasets():
         # Import images
         for i, file_path in enumerate(file_list):
             img = Image.open(file_path)
+            
             img = img.resize((hp.img_size, hp.img_size))
+            
             img = np.array(img, dtype=np.float32)
+            
+
+            print(img.shape, file_path)
+
             img /= 255.
+
 
             data_sample[i] = img
 
@@ -98,7 +105,8 @@ class Datasets():
     def preprocess_fn(self, img):
         """ Preprocess function for ImageDataGenerator. """
         img = img / 255.
-        img = self.standardize(img)
+        # img = self.standardize(img)
+        img = tf.image.resize(img, [256, 256], preserve_aspect_ratio=False,antialias=False, name=None)
         return img
 
     def get_data(self, path, shuffle, augment):
@@ -129,6 +137,7 @@ class Datasets():
             data_gen = tf.keras.preprocessing.image.ImageDataGenerator(
                 preprocessing_function=self.preprocess_fn, 
                 horizontal_flip=True, 
+                zoom_range=[.5, .8],
                 fill_mode='nearest')
             # ============================================================
         else:
@@ -153,11 +162,18 @@ class Datasets():
                     file_list.append(os.path.join(root, name))
 
         # Import images
+        images = []
         for i, file_path in enumerate(file_list):
             img = Image.open(file_path)
-            break
+            img = np.array(img)
+            img = self.preprocess_fn(img)
+            img = np.expand_dims(img, axis=0)
+            # img  = tf.keras.preprocessing.image.img_to_array(img, data_format=None, dtype=None)
+            images.append(img)
+        # print(np.array(images).shape)
+            for x, val in zip(data_gen.flow(img, save_to_dir=os.path.join(self.data_path, "train/preprocess/"), save_prefix='aug', save_format='png'), range(10)):
+                pass
 
-        for x, val in zip(data_gen.flow(img, save_to_dir=os.path.join(self.data_path, "preprocess/"), save_prefix='aug', save_format='png'), range(5)):
-            pass
 
+        
         return data_gen
