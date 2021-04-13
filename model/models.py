@@ -36,8 +36,12 @@ class GANILLA(tf.keras.Model):
     def loss_fn(labels, predictions):
         """ Loss function for the model. """
 
+<<<<<<< HEAD
         # TODO: according to paper we need "two Minimax losses for each Generator and 
         # Discriminator pair and one cycle consistency loss (L1)"
+=======
+        # TODO: compute losses for all four models, then compute some cyclic loss.
+>>>>>>> model
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False)
         return loss(labels, predictions)
@@ -90,6 +94,7 @@ class Generator(tf.keras.Model):
         x = self.block1(x)
 
         #TODO: a guess for the 4 downsampling blocks: call resnet on on 64, 128, 256 , 512
+
         # og code seems do downsample twice ** currently up and down sampling twice like the diagram on page 5
         #saving intermediate outputs for use in the upsampling skip connections
         layer_1_out = self.resnet(x, 64)
@@ -104,7 +109,6 @@ class Generator(tf.keras.Model):
         #not sure about size here
         tf.image.resize(image, size=[5,7], method="nearest")
         x = self.post_upsample(x)
-        # 
 
         return x
 
@@ -112,8 +116,7 @@ class Generator(tf.keras.Model):
     def loss_fn(labels, predictions):
         """ Loss function for model. """
 
-        # TODO: Select a loss function for your network (see the documentation
-        #       for tf.keras.losses)
+        # TODO: Compute loss. This is currently filler from CNN project
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False)
         return loss(labels, predictions)
@@ -130,14 +133,19 @@ class Generator(tf.keras.Model):
     
     def resnet(inputs, filter_size):
         """ Returns the output of a single resnet block """
-        #TODO: Not sure if for each resent block, the filter size decreases so I have it as a variable rn incase it halves.
+        #TODO: Not sure if for each resnet block, the filter size decreases so I have it as a variable rn incase it halves.
         # RESNET18 does that but TBH the architecture is a little different from what I see in the paper.
 
         #NOTE: Not totally sure of the strides, this line is a bit confusing: 
         # "We halve feature map size in each layer except Layer-I using convolutions with stride of 2."
+<<<<<<< HEAD
         #Re above: from the paper it looks like in layers 2, 3, and 4 the skip connecton in the first block must be convolved to the correct
         #size before concatenation
 
+=======
+
+        #TODO: Ask about rescoping the model (pretrain some resnet layers, reduce learnable parameters)
+>>>>>>> model
         KERNEL_INIT = RandomNormal(stddev=0.02) 
         KERNEL_SIZE = 3
         
@@ -152,39 +160,12 @@ class Generator(tf.keras.Model):
             BatchNormalization(),
         ]
         
-        #### DOWNSAMPLING 
-
-        # 64 , 128 kernel = 3, stride = 2
-        # batch normalization
-        # relu
-
-        # 128, 256, kernel = 3, s=2
-        # batch normalization
-        # relu
-
-        # 4 resnet blocks
-
-        # out features: 64
-
-        #### UPSAMPLING
-
-        # conv2d transpose 128, 64, k=3, s=2,
-        # batchnorm
-        # relu
-
-        # conv2d tranpose 64, 32 k=3, s=2
-        # batchnorm
-        # relu
-
-        # reflection pad(3)
-        # conv2d 64 -> output image, k=7
-        # tanh activation
         
         output = inputs
         for l in mod_resnet:
             output = mod_resent(output)
 
-        result = Concatenate()([output, inputs])
+        result = Concatenate()([output, inputs]) # "skip concatenation" mentioned in paper? not sure if thisi s how you do it
 
         final_layer = [
             Conv2D(filters=filter_size, kernel_size=3, strides(1,1), padding="same", activation="relu", kernel_initializer=KERNEL_INIT)
@@ -194,6 +175,7 @@ class Generator(tf.keras.Model):
         #NEED TO combind final_layer with above architecture
 
 
+        # Vanilla RESNET18 Model from the paper here for reference.
         # vanilla_resnet = [
         #     Conv2D(filters=64, kernel_size=7, strides=(2,2), padding="same", 
         #         kernel_initializer="random_normal", activation = "relu", name="conv1"),
@@ -229,9 +211,8 @@ The Discriminator model, leveraging PatchGAN architecture.
 Determines if the given image is generated or real.
 
 Nice explanation of PatchGAN first bit: https://sahiltinky94.medium.com/understanding-patchgan-9f3c8380c207
-Note that this explanation has only one layer in each block. This may be worthwhile simplification to improve runtime.
 
-Tutorial: https://machinelearningmastery.com/how-to-implement-pix2pix-gan-models-from-scratch-with-keras/
+Pix2Pix, could be relevant: https://machinelearningmastery.com/how-to-implement-pix2pix-gan-models-from-scratch-with-keras/
 """
 class Discriminator(tf.keras.Model):
     def __init__(self):
@@ -243,7 +224,6 @@ class Discriminator(tf.keras.Model):
         STRIDE = 2
         RELU = .2
         
-        #TODO: Model, this has not been started really.
         self.layers = [
             Conv2D(filters=64, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block1_conv2"),
             LeakyReLU(RELU),
@@ -295,7 +275,8 @@ class Discriminator(tf.keras.Model):
         # ground truth: all 1's for real, all 0's for fake
         # predicted: disc_real_output, disc_fake_output
 
+        # the "real" labels to perform BCE on
         truth_real = tf.ones_like(disc_real_output)
-        truth_fake = tf.zeros_like(disc_fake_output)
+        truth_fake = tf.zeros_like(disc_fake_output) 
 
         return bce(truth_real, disc_real_output) + bce(truth_fake, disc_fake_output)
