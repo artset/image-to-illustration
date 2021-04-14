@@ -58,15 +58,6 @@ class Generator(tf.keras.Model):
             # MaxPool2D(2, name="block1_conv1"),   
         ]
 
-
-        #TODO: Upsampling
-        # self.upsample = [
-        #     # conv2d
-        #     Conv2DTranspose(filters=32, kernel_size=3, strides=2, padding="same", output_padding=1),
-        #     BatchNorm(),
-        #     Activation("relu")
-        # ]
-
         self.pre_upsample = [
             #notsure about filters, strides, padding, or output padding here
             Conv2DTranspose(filters=512, kernel_size=(1,1), padding="same", outpadding=1)
@@ -78,15 +69,12 @@ class Generator(tf.keras.Model):
             Conv2DTranspose(filters=64, kernel_size=(7,7), padding="same", outpadding=1)
         }
 
-        # TODO add  upsmaplign function to resize after upsampling
-
-        # use  tf.image.resize(image, size=[5,7], method="nearest") for upsampling, unsure about shape
-
     def call(self, x):
         """ Passes the image through the network. """
         # TODO: the TAN BLOCKS between skip connections appear to be conv layers needed to properly resize things so that they can be concatenated or summed togehter!!!!
         # Need to add this to the resnet structure overal ^^
-        x = self.block1(x)
+        for layer in self.block1:
+            x = layer(x)
 
         #TODO: a guess for the 4 downsampling blocks: call resnet on on 64, 128, 256 , 512
 
@@ -97,13 +85,18 @@ class Generator(tf.keras.Model):
         layer_3_out = self.resnet(layer_2_out, 256)
         x = self.resnet(layer_4_out, 512)
         # og code seems to upsample twice 
-        x = self.pre_upsample(x)
+
+        for layer in self.pre_upsample:
+            x = layer(x)
+
         x = self.upsample(x, layer_3_out)
         x = self.upsample(x, layer_2_out)
         x = self.upsample(x, layer_1_out)
         #not sure about size here
         tf.image.resize(image, size=[5,7], method="nearest")
-        x = self.post_upsample(x)
+        
+        for layer in self.post_upsample(x):
+            x = layer(x)
 
         return x
 
@@ -164,7 +157,7 @@ class Generator(tf.keras.Model):
         ]
 
         return result
-        #NEED TO combind final_layer with above architecture
+        #TODO: NEED TO combind final_layer with above architecture
 
 
         # Vanilla RESNET18 Model from the paper here for reference.
