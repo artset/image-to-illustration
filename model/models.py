@@ -33,13 +33,17 @@ class GANILLA(tf.keras.Model):
         return x
 
     @staticmethod
-    def loss_fn(labels, predictions):
+    #CYCLE LOSS
+    def loss_fn(real_image, cycled_image):
         """ Loss function for the model. """
-        # TODO: according to paper we need "two Minimax losses for each Generator and 
+        # according to paper we need "two Minimax losses for each Generator and 
         # Discriminator pair and one cycle consistency loss (L1)"
 
-        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False)
-        return loss(labels, predictions)
+        # cycle gan uses cycle loss tho...so this is just cycle loss
+        loss1 = tf.reduce_mean(tf.abs(real_image - cycled_image))
+        # play around w param 
+        LAMBDA = 10
+        return LAMBDA * loss1
 
 """
 The Generator model, containing modified RESNET blocks.
