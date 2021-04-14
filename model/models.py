@@ -108,13 +108,18 @@ class Generator(tf.keras.Model):
         return x
 
     @staticmethod
-    def loss_fn(labels, predictions):
+    def loss_fn(disc_real_output):
         """ Loss function for model. """
+        bce = tf.keras.losses.BinaryCrossentropy()
 
-        # TODO: Compute loss. This is currently filler from CNN project
+        # wants to maximize correctly classifying the reals as reals and the fakes as fakes
+        # ground truth: all 1's for real, all 0's for fake
+        # predicted: disc_real_output, disc_fake_output
 
-        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False)
-        return loss(labels, predictions)
+        # the "real" labels to perform BCE on
+        truth_real = tf.ones_like(disc_real_output)
+
+        return bce(truth_real, disc_real_output)
 
     def upsample(inputs, skipinputs):
         """Returns output of upsampling chunk with addition of skip connection layer"""
