@@ -9,17 +9,17 @@ The data for this model can be found [here](https://github.com/artset/cs1430-fin
 
 #### TODO
 - [x] GCP set up VM + Buckets [Katherine]
-- [ ] Preprocessing 
+- [x] Preprocessing 
   - [x] Write script to scrape from OpenLibrary [Minna, Katherine, Zoe, Liyaan]
-  - [ ] Scrape illustration data from OpenLibrary
+  - [x] Scrape illustration data from OpenLibrary [Katherine]
   - [x] Get landscape data from CycleGAN dataset/Kaggle [Zoe, Liyaan]
   - [x] Scrape Miyazaki images from Google Images [Minna, Katherine]
-  - [ ] Write preprocessing script to prepare images for model 
+  - [x] Write preprocessing script to prepare images for model  [Minna, Katherine]
 - [ ] Model 
   - [ ] Write script to run pipeline
   - [ ] Set up tensorboard
   - [ ] Model architecture
-    - [ ] Generator 
+    - [ ] Generator [Zoe, Liyaan]
     - [x] Discriminator [Minna, Katherine]
     - [ ] Ganilla model that puts everything together
-- Project 1 Report [all]
+- [x] Progress Report [Minna, Katherine, Liyaan]
