@@ -12,7 +12,7 @@ The data for this model can be found [here](https://github.com/artset/cs1430-fin
 - [x] Preprocessing 
   - [x] Write script to scrape from OpenLibrary [Minna, Katherine, Zoe, Liyaan]
   - [x] Scrape illustration data from OpenLibrary [Katherine]
-  - [x] Get landscape data from CycleGAN dataset/Kaggle [Zoe, Liyaan]
+  - [x] Get landscape data from CycleGAN dataset/Kaggle [Zoe, Liyaan, Minna]
   - [x] Scrape Miyazaki images from Google Images [Minna, Katherine]
   - [x] Write preprocessing script to prepare images for model  [Minna, Katherine]
 - [ ] Model 
