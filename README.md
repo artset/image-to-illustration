@@ -21,5 +21,5 @@ The data for this model can be found [here](https://github.com/artset/cs1430-fin
   - [ ] Model architecture
     - [ ] Generator [Zoe, Liyaan]
     - [x] Discriminator [Minna, Katherine]
-    - [ ] Ganilla model that puts everything together
+    - [ ] Ganilla model that puts everything together [Zoe, Liyaan]
 - [x] Progress Report [Minna, Katherine, Liyaan]
