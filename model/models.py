@@ -112,10 +112,6 @@ class Generator(tf.keras.Model):
         """ Loss function for model. """
         bce = tf.keras.losses.BinaryCrossentropy()
 
-        # wants to maximize correctly classifying the reals as reals and the fakes as fakes
-        # ground truth: all 1's for real, all 0's for fake
-        # predicted: disc_real_output, disc_fake_output
-
         # the "real" labels to perform BCE on
         truth_real = tf.ones_like(disc_real_output)
 
