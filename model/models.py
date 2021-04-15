@@ -6,7 +6,7 @@ Brown University
 
 import tensorflow as tf
 from tensorflow.keras.layers import \
-    Conv2D, MaxPool2D, Dropout, Flatten, Dense, AveragePooling2D, BatchNormalization, ZeroPadding2D, Conv2DTranspose, UpSampling2D
+    Conv2D, MaxPool2D, Dropout, Flatten, Dense, AveragePooling2D, BatchNormalization, ZeroPadding2D, Conv2DTranspose, UpSampling2D, Activation, RandomNormal, Concatenate
 
 import hyperparameters as hp
 
@@ -21,6 +21,10 @@ class GANILLA(tf.keras.Model):
 
         # TODO: Instantiate the 2 pairs of Discrim/Gen
         self.architecture = [
+            Generator(),
+            Discriminator(),
+            Generator(),
+            Discriminator()
              
         ]
 
@@ -57,7 +61,7 @@ class Generator(tf.keras.Model):
         self.block1 = [
             # original model seems to have a reflection pad??? unsure why
             Conv2D(filters=64, kernel_size=7, strides=1, padding="same", name="block1_conv1"),
-            BatchNorm(),
+            BatchNormalization(),
             Activation("relu") # seems to go after normalization not CONV2D, need to fact check if this is legit
             # MaxPool2D(2, name="block1_conv1"),   
         ]
@@ -69,8 +73,10 @@ class Generator(tf.keras.Model):
 
         self.post_upsample = {
             #notsure about filters, , padding, or output padding here
-            Conv2DTranspose(filters=64, kernel_size=(1,1), padding="same", outpadding=1),
-            Conv2DTranspose(filters=64, kernel_size=(7,7), padding="same", outpadding=1)
+
+            UpSampling2D(size=(2,2), interpolation="nearest"), #Might need to change the data_format param based on how our data is structured
+            Conv2DTranspose(filters=128, kernel_size=(1,1), padding="same", outpadding=1),
+            Conv2DTranspose(filters=64, kernel_size=(7,7), padding="same")
         }
 
     def call(self, x):
@@ -87,18 +93,17 @@ class Generator(tf.keras.Model):
         layer_1_out = self.resnet(x, 64)
         layer_2_out = self.resnet(layer_1_out, 128)
         layer_3_out = self.resnet(layer_2_out, 256)
-        x = self.resnet(layer_4_out, 512)
+        x = self.resnet(layer_3_out, 512)
         # og code seems to upsample twice 
 
         for layer in self.pre_upsample:
             x = layer(x)
 
-        x = self.upsample(x, layer_3_out)
-        x = self.upsample(x, layer_2_out)
-        x = self.upsample(x, layer_1_out)
+        x = self.upsample(x, layer_3_out, 64)
+        x = self.upsample(x, layer_2_out, 128)
+        x = self.upsample(x, layer_1_out, 256)
         #not sure about size here
-        tf.image.resize(image, size=[5,7], method="nearest")
-        
+                
         for layer in self.post_upsample(x):
             x = layer(x)
 
@@ -114,12 +119,13 @@ class Generator(tf.keras.Model):
 
         return bce(truth_real, disc_real_output)
 
-    def upsample(inputs, skipinputs):
+    def upsample(inputs, skipinputs, filter_size):
         """Returns output of upsampling chunk with addition of skip connection layer"""
-        x = tf.image.resize(inputs, size=[5,7], method="nearest")
+        up = UpSampling2D(size=(2,2), interpolation="nearest") #Might need to change the data_format param based on how our data is structured
         #TODO: convolve skipinput to be correct size and then sum with x 
-        #notsure about filters, kernel size, strides, padding, or output padding here
-        conv = Conv2DTranspose(filters=64, kernel_size=(1,1), padding="same", outpadding=1)
+        #paper seems to say kernel_size = 1,1 but repo says 3,3
+        conv = Conv2DTranspose(filters=filter_size, kernel_size=(1,1), stride=2, padding="same", outpadding=1)
+        x = up(inputs)
         y = conv(skipinputs)
         x += y
         return 
@@ -144,7 +150,7 @@ class Generator(tf.keras.Model):
                 kernel_initializer=KERNEL_INIT, name="conv1"),
             BatchNormalization(),
             Activation("relu"),
-            MaxPool2d(strides=2),
+            MaxPool2D(strides=2),
             Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(2,2), padding="same", 
                 kernel_initializer=KERNEL_INIT, name="conv2"),
             BatchNormalization(),
@@ -153,16 +159,15 @@ class Generator(tf.keras.Model):
         
         output = inputs
         for l in mod_resnet:
-            output = mod_resent(output)
+            output = l(output)
 
         result = Concatenate()([output, inputs]) # "skip concatenation" mentioned in paper? not sure if thisi s how you do it
 
         final_layer = [
-            Conv2D(filters=filter_size, kernel_size=3, strides(1,1), padding="same", activation="relu", kernel_initializer=KERNEL_INIT)
+            Conv2D(filters=filter_size, kernel_size=3, stride=(1,1), padding="same", activation="relu", kernel_initializer=KERNEL_INIT)
         ]
-
+        result = final_layer[0](result)
         return result
-        #TODO: NEED TO combind final_layer with above architecture
 
 
         # Vanilla RESNET18 Model from the paper here for reference.
