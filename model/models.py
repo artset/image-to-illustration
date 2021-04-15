@@ -41,8 +41,6 @@ class GANILLA(tf.keras.Model):
         return x
 
     @staticmethod
-    #CYCLE LOSS
-    #NOTE: I was concerned this will be automatically called in the pipeline for .compile() so I renamed it. - KS
     def cycle_loss(real, cycled):
         """
         Gives our model the property such that
@@ -50,6 +48,8 @@ class GANILLA(tf.keras.Model):
         input illustrator -> photo generator -> generated photo -> illustrator generator -> output illustration
         
         We want i/o photo and i/o illustrator to look the same.
+
+        Note: I was concerned this will be automatically called in the pipeline for .compile() so I renamed it. - KS
         """
         # loss1 = tf.reduce_mean(tf.abs(real - cycled)) # Commented out for a consistent style with the identity loss. -KS
         return self_lambda_cycle * self.cy_loss(real, cycled)
@@ -59,25 +59,33 @@ class GANILLA(tf.keras.Model):
         Gives our model the property that generators will do this
         illustrator -> illustrator generator -> illustrator
         photo -> photo generator -> photo
-
-        This helps for consistency of color.
     """
     def identity_loss(real, cycled):
         return self.lambda_identity * self_lambda_cycle * self.id_loss(real, cycled)
 
-
-    def train(input_data):
+    def generate_images(images):
         """
+            Evaluate our model
+            images || tensor of shape (batch size x 256 x 256 x 3)
+        """
+        generated = self.g1(images)
+        #TODO: depending on if we're doing [-1,1] or [0,1], transform back to [0, 255]
+        return generated
+
+
+    def train_step(input_data):
+        """
+        input_data || tuple
         Ideally this should be something that looks like (photos, illustration), aka (source, target)
-        Created this constraint of 1 variable based on the tf.model API.
+        in the model.fit() we can pass tf.data.Dataset.zip((photos, illustrations)).
+        (Source: https://www.tensorflow.org/guide/keras/customizing_what_happens_in_fit)
 
+        returns a dict mapping each loss to its value
+
+        NOTES:
         My guess is that we have to do an actual train() function rather than just compute a single loss function because
-        we need more fine grained control over what gradients are updated, and since this model is composed of multipple losses.
+        we need more fine grained control over what gradients are updated, and since this model is composed of multiple losses.
         I'm not sure what the consequence would be if we tried to throw this in a single loss function.
-        
-        This also aligns more closely with tutorials, although there is less transparency in what model.compile() does, 
-        so that need to be looked into.
-
         -KS
         """
         photo, illo = input_data
@@ -100,7 +108,7 @@ class GANILLA(tf.keras.Model):
             disc_illos_loss = self.d1.loss_fn(disc_fake_illos, disc_real_illos)
             disc_photos_loss = self.d2.loss_fn(disc_fake_photos, disc_real_photos)
 
-            # Compute cyclic Loss
+            # Compute cyclic loss
             cycle_photos = self.g2(fake_illos)
             cycle_illos = self.g1(fake_photos)
             cycle_photos_loss = cycle_loss(photos, cycle_photos)
@@ -127,6 +135,14 @@ class GANILLA(tf.keras.Model):
         self.g2.optimizer.apply_gradients(zip(grads_g2, self.g2.trainable_variables))
         self.d1.optimizer.apply_gradients(zip(grads_d1, self.d1.trainable_variables))
         self.d2.optimizer.apply_gradients(zip(grads_d2, self.d2.trainable_variables))
+
+        # Return a dict mapping metric names to current value
+        return {
+            "gen_illos_loss": gen_illos_loss,
+            "gen_photos_loss": gen_photos_loss,
+            "disc_illos_loss": disc_illos_loss,
+            "disc_photos_loss": disc_photos_loss,
+        }
 
 
 """
