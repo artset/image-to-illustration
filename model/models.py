@@ -189,9 +189,9 @@ class Generator(tf.keras.Model):
         ]
 
         self.post_upsample = {
-            # Not sure about filters, , padding, or output padding here
-            Conv2DTranspose(filters=64, kernel_size=(1,1), padding="same", outpadding=1),
-            Conv2DTranspose(filters=64, kernel_size=(7,7), padding="same", outpadding=1)
+            # Not sure about stride, padding, or output padding here
+            Conv2DTranspose(filters=64, kernel_size=(1,1), stride=1, padding="same", outpadding=1),
+            Conv2DTranspose(filters=64, kernel_size=(7,7), stride=1, padding="same", outpadding=1)
         }
 
     def call(self, x):
@@ -217,11 +217,12 @@ class Generator(tf.keras.Model):
             x = layer(x)
 
         # Original code seems to upsample twice 
-        x = self.upsample(x, layer_3_out)
-        x = self.upsample(x, layer_2_out)
-        x = self.upsample(x, layer_1_out)
+        x = self.upsample(x, layer_3_out, 512)
+        x = self.upsample(x, layer_2_out, 256)
+        x = self.upsample(x, layer_1_out, 128)
         # Not sure about the size
-        x = tf.image.resize(x, size=[5,7], method="nearest")
+        up = UpSampling2D(size=(2,2), interpolation="nearest")
+        x = up(x)
         
         for layer in self.post_upsample(x):
             x = layer(x)
@@ -241,7 +242,7 @@ class Generator(tf.keras.Model):
         up = UpSampling2D(size=(2,2), interpolation="nearest") #Might need to change the data_format param based on how our data is structured
         #TODO: convolve skipinput to be correct size and then sum with x 
         #paper seems to say kernel_size = 1,1 but repo says 3,3
-        conv = Conv2DTranspose(filters=filter_size, kernel_size=(1,1), stride=2, padding="same", outpadding=1)
+        conv = Conv2DTranspose(filters=filter_size, kernel_size=(1,1), stride=1, padding="same", outpadding=1)
         x = up(inputs)
         y = conv(skipinputs)
         x += y
