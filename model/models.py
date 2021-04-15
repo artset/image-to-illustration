@@ -46,7 +46,7 @@ class GANILLA(tf.keras.Model):
         Note: I was concerned this will be automatically called in the pipeline for .compile() so I renamed it. - KS
         """
         # loss1 = tf.reduce_mean(tf.abs(real - cycled)) # Commented out for a consistent style with the identity loss. -KS
-        return self_lambda_cycle * self.cy_loss(real, cycled)
+        return self.lambda_cycle * self.cy_loss(real, cycled)
 
     @staticmethod
     def identity_loss(real, cycled):
@@ -55,7 +55,7 @@ class GANILLA(tf.keras.Model):
         illustrator -> illustrator generator -> illustrator
         photo -> photo generator -> photo
         """
-        return self.lambda_identity * self_lambda_cycle * self.id_loss(real, cycled)
+        return self.lambda_identity * self.lambda_cycle * self.id_loss(real, cycled)
 
 
     def train_step(input_data):
