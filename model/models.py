@@ -34,12 +34,6 @@ class GANILLA(tf.keras.Model):
         self.cy_loss = MeanAbsoluteError()
         self.id_loss = MeanAbsoluteError()
 
-    def call(self, x):
-        """ Passes input image through the network. """
-        for layer in self.architecture:
-            x = layer(x)
-        return x
-
     @staticmethod
     def cycle_loss(real, cycled):
         """
@@ -55,22 +49,13 @@ class GANILLA(tf.keras.Model):
         return self_lambda_cycle * self.cy_loss(real, cycled)
 
     @staticmethod
-    """
+    def identity_loss(real, cycled):
+        """
         Gives our model the property that generators will do this
         illustrator -> illustrator generator -> illustrator
         photo -> photo generator -> photo
-    """
-    def identity_loss(real, cycled):
+        """
         return self.lambda_identity * self_lambda_cycle * self.id_loss(real, cycled)
-
-    def generate_images(images):
-        """
-            Evaluate our model
-            images || tensor of shape (batch size x 256 x 256 x 3)
-        """
-        generated = self.g1(images)
-        #TODO: depending on if we're doing [-1,1] or [0,1], transform back to [0, 255]
-        return generated
 
 
     def train_step(input_data):
@@ -85,7 +70,8 @@ class GANILLA(tf.keras.Model):
         NOTES:
         My guess is that we have to do an actual train() function rather than just compute a single loss function because
         we need more fine grained control over what gradients are updated, and since this model is composed of multiple losses.
-        I'm not sure what the consequence would be if we tried to throw this in a single loss function.
+        I'm not sure what the consequence would be if we tried to throw this in a single loss function, but overriding the train_step function
+        seems like a valid approach.
         -KS
         """
         photo, illo = input_data
@@ -144,6 +130,33 @@ class GANILLA(tf.keras.Model):
             "disc_photos_loss": disc_photos_loss,
         }
 
+    @staticmethod
+    def process_output(image):
+        """ goes from [-1, 1] to [0, 255]
+        """
+        return (image * 127.5) + 127.5 
+
+    def generate_images(images):
+        """
+        Shows generated output this is more for visual evaluation
+        input: images || tensor of shape (batch size x 256 x 256 x 3), landscape photos
+        output: generated || tensor of same shape, illustrations
+        """
+        generated = self.g1(images)
+        generated = process_output(generated)
+        ## TODO: save as images in a diretory we want.
+        return generated
+
+    def generate_cycle_images(images):
+        """
+        Test to see if our GAN pairing has the desired cyclic nature, for visual evaluation
+        input: images || tensor of shape (batch size x 256 x 256 x 3), landscape photos
+        output: cycle images || tensor of same shape, landscape photos
+        """"
+        res = self.g1(images)
+        res = self.g2(res)
+        ## TODO: save as images in a diretory we want.
+        return process_output(generated)
 
 """
 The Generator model, containing modified RESNET blocks.
@@ -154,9 +167,7 @@ class Generator(tf.keras.Model):
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=hp.learning_rate)
         GAMMA_INIT = keras.initializers.RandomNormal(mean=0.0, stddev=0.02)
-
         self.name = name
-
 
         self.layers = [
             # Original model seems to have a reflection pad, but not sure why
