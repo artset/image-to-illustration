@@ -188,6 +188,11 @@ class Generator(tf.keras.Model):
             Conv2DTranspose(filters=512, kernel_size=(1,1), padding="same", outpadding=1)
         ]
 
+        self.pre_upsample_simple = [
+            # Not sure about filters, strides, padding, or output padding here
+            Conv2DTranspose(filters=256, kernel_size=(1,1), padding="same", outpadding=1)
+        ]
+
         self.post_upsample = {
             # Not sure about stride, padding, or output padding here
             Conv2DTranspose(filters=64, kernel_size=(1,1), stride=1, padding="same", outpadding=1),
@@ -202,9 +207,8 @@ class Generator(tf.keras.Model):
         for layer in self.block1:
             x = layer(x)
 
-        #TODO: a guess for the 4 downsampling blocks: call resnet on on 64, 128, 256 , 512
-        # Original code seems do downsample twice -- currently upsampling and downsampling four times to match the diagram on page 5
-        # Saving intermediate outputs for use in the upsampling skip connections
+        # oen less resnet block
+        #saving intermediate outputs for use in the upsampling skip connections
         layer_1a_out = self.resnet(x, 64, "layer_1_a")
         layer_1b_out = self.resnet(layer_1a_out, 64, "layer_b")
         layer_2a_out = self.resnet(layer_1b_out, 64, "layer_2_a")
@@ -214,7 +218,7 @@ class Generator(tf.keras.Model):
         #  layer 3b
         x = self.resnet(layer_3a_out, 256, "layer_b")
 
-        for layer in self.pre_upsample:
+        for layer in self.pre_upsample_simple:
             x = layer(x)
 
         # Original code seems to upsample twice 
