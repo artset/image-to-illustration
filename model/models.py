@@ -11,6 +11,7 @@ from tensorflow.keras.layers import \
     Conv2D, MaxPool2D, Dropout, Flatten, Dense, AveragePooling2D, BatchNormalization, \
     ZeroPadding2D, Conv2DTranspose, UpSampling2D, Concatenate, LeakyReLU, ReLU
 from tensorflow_addons.layers import InstanceNormalization
+from tensorflow.keras.lossees import MeanAbsoluteError
 
 import hyperparameters as hp
 
@@ -23,17 +24,15 @@ class GANILLA(tf.keras.Model):
         self.num_classes = hp.num_classes
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=hp.learning_rate)
 
-        self.gen_1 = Generator()
-        self.gen_2 = Generator()
-        self.disc_1 = Discriminator()
-        self.disc_2 = Discriminator()
+        self.g1 = Generator("toIllo")
+        self.g2 = Generator("toPhoto")
+        self.d1 = Discriminator("isIllo")
+        self.d2 = Discriminator("isPhoto")
         self.lambda_cycle = 10.0
-        self.lambda_id = 0.5
+        self.lambda_identity = 0.5
 
-        # TODO: Instantiate the 2 pairs of Discrim/Gen
-        self.architecture = [
-             
-        ]
+        self.cy_loss = MeanAbsoluteError()
+        self.id_loss = MeanAbsoluteError()
 
     def call(self, x):
         """ Passes input image through the network. """
@@ -43,30 +42,109 @@ class GANILLA(tf.keras.Model):
 
     @staticmethod
     #CYCLE LOSS
-    def loss_fn(real_image, cycled_image):
-        """ Loss function for the model. """
-        # according to paper we need "two Minimax losses for each Generator and 
-        # Discriminator pair and one cycle consistency loss (L1)"
+    #NOTE: I was concerned this will be automatically called in the pipeline for .compile() so I renamed it. - KS
+    def cycle_loss(real, cycled):
+        """
+        Gives our model the property such that
+        input photo -> illustrator generator -> generated illustration -> photo generator -> output photo
+        input illustrator -> photo generator -> generated photo -> illustrator generator -> output illustration
+        
+        We want i/o photo and i/o illustrator to look the same.
+        """
+        # loss1 = tf.reduce_mean(tf.abs(real - cycled)) # Commented out for a consistent style with the identity loss. -KS
+        return self_lambda_cycle * self.cy_loss(real, cycled)
 
-        # cycle gan uses cycle loss tho...so this is just cycle loss
-        loss1 = tf.reduce_mean(tf.abs(real_image - cycled_image))
-        # play around w param 
-        LAMBDA = 10
-        return LAMBDA * loss1
+    @staticmethod
+    """
+        Gives our model the property that generators will do this
+        illustrator -> illustrator generator -> illustrator
+        photo -> photo generator -> photo
+
+        This helps for consistency of color.
+    """
+    def identity_loss(real, cycled):
+        return self.lambda_identity * self_lambda_cycle * self.id_loss(real, cycled)
+
+
+    def train(input_data):
+        """
+        Ideally this should be something that looks like (photos, illustration), aka (source, target)
+        Created this constraint of 1 variable based on the tf.model API.
+
+        My guess is that we have to do an actual train() function rather than just compute a single loss function because
+        we need more fine grained control over what gradients are updated, and since this model is composed of multipple losses.
+        I'm not sure what the consequence would be if we tried to throw this in a single loss function.
+        
+        This also aligns more closely with tutorials, although there is less transparency in what model.compile() does, 
+        so that need to be looked into.
+
+        -KS
+        """
+        photo, illo = input_data
+        with tf.GradientTape(persistent=True) as tape:
+            # Call Generators
+            fake_illos = self.g1(photos)
+            fake_photos = self.g2(illos)
+
+            # Call Discriminators
+            disc_fake_illos = self.d1(fake_illos)
+            disc_real_illos = self.d1(illos)
+            disc_fake_photos = self.d2(fake_photos)
+            disc_real_photos = self.d2(photos)
+
+            # Adversarial loss
+            ad_illos_loss = self.g1.loss_fn(illos)
+            ad_photos_loss = self.g2.loss_fn(photos)
+
+            # Discriminator Loss
+            disc_illos_loss = self.d1.loss_fn(disc_fake_illos, disc_real_illos)
+            disc_photos_loss = self.d2.loss_fn(disc_fake_photos, disc_real_photos)
+
+            # Compute cyclic Loss
+            cycle_photos = self.g2(fake_illos)
+            cycle_illos = self.g1(fake_photos)
+            cycle_photos_loss = cycle_loss(photos, cycle_photos)
+            cycle_illos_loss = cycle_loss(illos, cycle_illos)
+
+            # Compute identity losses
+            same_illos = self.g1(illos)
+            same_photos = self.g2(photos)
+            id_photos_loss = identity_loss(photos, same_photos)
+            id_illos_loss = identity_loss(illos, same_illos)
+
+            # Generator loss: adversarial + cylic + identity
+            gen_illos_loss = ad_illos_loss + cycle_illos_loss + id_illos_loss
+            gen_photos_loss = ad_photo_loss + cycle_photos_loss + id_photos_loss
+
+        # Compute gradients for generators and discriminators
+        grads_g1 = tape.gradient(gen_illos_loss, self.g1.trainable_variables)
+        grads_g2 = tape.gradient(gen_photos_loss, self.g2.trainable_variables)
+        grads_d1 = tape.gradient(disc_illos_loss, self.d1.trainable_variables)
+        grads_d2 = tape.gradient(disc_photos_loss, self.d2.trainable_variables)
+
+        # Apply gradients to generators and discriminators
+        self.g1.optimizer.apply_gradients(zip(grads_g1, self.g1.trainable_variables))
+        self.g2.optimizer.apply_gradients(zip(grads_g2, self.g2.trainable_variables))
+        self.d1.optimizer.apply_gradients(zip(grads_d1, self.d1.trainable_variables))
+        self.d2.optimizer.apply_gradients(zip(grads_d2, self.d2.trainable_variables))
+
 
 """
 The Generator model, containing modified RESNET blocks.
 """
 class Generator(tf.keras.Model):
-    def __init__(self):
+    def __init__(self, name=None):
         super(Generator, self).__init__()
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=hp.learning_rate)
         GAMMA_INIT = keras.initializers.RandomNormal(mean=0.0, stddev=0.02)
 
+        self.name = name
 
-        self.block1 = [
+
+        self.layers = [
             # Original model seems to have a reflection pad, but not sure why
+            # Block 1
             Conv2D(filters=64, kernel_size=7, strides=1, padding="same", name="block1_conv1"),
             InstanceNormalization(gamma_initializer=GAMMA_INIT),
             ReLU() # seems to go after normalization not CONV2D, need to fact check if this is legit
@@ -88,7 +166,7 @@ class Generator(tf.keras.Model):
         """ Passes the image through the network. """
         # TODO: the TAN BLOCKS between skip connections appear to be conv layers needed to properly resize things so that they can be concatenated or summed togehter!!!!
         # Need to add this to the resnet structure overal ^^
-        for layer in self.block1:
+        for layer in self.layer:
             x = layer(x)
 
         #TODO: a guess for the 4 downsampling blocks: call resnet on on 64, 128, 256 , 512
@@ -214,10 +292,11 @@ Nice explanation of PatchGAN first bit: https://sahiltinky94.medium.com/understa
 Pix2Pix, could be relevant: https://machinelearningmastery.com/how-to-implement-pix2pix-gan-models-from-scratch-with-keras/
 """
 class Discriminator(tf.keras.Model):
-    def __init__(self):
+    def __init__(self, name=None):
         super(Discriminator, self).__init__()
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=hp.learning_rate)
+        self.name = name
 
         KERNEL_SIZE = 4
         STRIDE = 2
