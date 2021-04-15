@@ -194,6 +194,40 @@ class Generator(tf.keras.Model):
             Conv2DTranspose(filters=64, kernel_size=(7,7), stride=1, padding="same", outpadding=1)
         }
 
+    # simplified call func 
+    def call_simple(self, x):
+        """ Passes the image through the network. """
+        # TODO: the TAN BLOCKS between skip connections appear to be conv layers needed to properly resize things so that they can be concatenated or summed togehter!!!!
+        # Need to add this to the resnet structure overal ^^
+        for layer in self.block1:
+            x = layer(x)
+
+        #TODO: a guess for the 4 downsampling blocks: call resnet on on 64, 128, 256 , 512
+        # Original code seems do downsample twice -- currently upsampling and downsampling four times to match the diagram on page 5
+        # Saving intermediate outputs for use in the upsampling skip connections
+        layer_1a_out = self.resnet(x, 64, "layer_1_a")
+        layer_1b_out = self.resnet(layer_1a_out, 64, "layer_b")
+        layer_2a_out = self.resnet(layer_1b_out, 64, "layer_2_a")
+        layer_2b_out = self.resnet(layer_2a_out, 128, "layer_b")
+        layer_3a_out = self.resnet(layer_2b_out, 128, "layer_2_a")
+
+        #  layer 3b
+        x = self.resnet(layer_3a_out, 256, "layer_b")
+
+        for layer in self.pre_upsample:
+            x = layer(x)
+
+        # Original code seems to upsample twice 
+        x = self.upsample(x, layer_2b_out, 256)
+        x = self.upsample(x, layer_1b_out, 128)
+        # Not sure about the size
+        up = UpSampling2D(size=(2,2), interpolation="nearest")
+        x = up(x)
+        
+        for layer in self.post_upsample(x):
+            x = layer(x)
+        return x
+
     def call(self, x):
         """ Passes the image through the network. """
         # TODO: the TAN BLOCKS between skip connections appear to be conv layers needed to properly resize things so that they can be concatenated or summed togehter!!!!
