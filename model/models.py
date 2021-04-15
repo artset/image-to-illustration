@@ -123,7 +123,7 @@ class GANILLA(tf.keras.Model):
         self.d1.optimizer.apply_gradients(zip(grads_d1, self.d1.trainable_variables))
         self.d2.optimizer.apply_gradients(zip(grads_d2, self.d2.trainable_variables))
 
-        # Return a dict mapping metric names to current value
+        # Return a dict mapping metric names to current value required by tf docs
         return {
             "gen_illos_loss": gen_illos_loss,
             "gen_photos_loss": gen_photos_loss,
@@ -133,7 +133,9 @@ class GANILLA(tf.keras.Model):
 
     @staticmethod
     def process_output(image):
-        """ goes from [-1, 1] to [0, 255]
+        """
+        Goes from [-1, 1] to [0, 255]
+        Helps us understand our generator output.
         """
         return (image * 127.5) + 127.5 
 
