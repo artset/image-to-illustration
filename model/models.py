@@ -157,7 +157,7 @@ class GANILLA(tf.keras.Model):
 
         input: images || tensor of shape (batch size x 256 x 256 x 3), landscape photos
         output: cycle images || tensor of same shape, landscape photos
-        """"
+        """
         res = self.g1(images)
         res = self.g2(res)
         ## TODO: save as images in a directory we want.
@@ -251,9 +251,9 @@ class Generator(tf.keras.Model):
             x = layer(x)
 
         # Original code seems to upsample twice 
-        x = self.upsample(x, layer_3_out, 512)
-        x = self.upsample(x, layer_2_out, 256)
-        x = self.upsample(x, layer_1_out, 128)
+        x = self.upsample(x, layer_3b_out, 512)
+        x = self.upsample(x, layer_2b_out, 256)
+        x = self.upsample(x, layer_1b_out, 128)
         # Not sure about the size
         up = UpSampling2D(size=(2,2), interpolation="nearest")
         x = up(x)
