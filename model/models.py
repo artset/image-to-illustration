@@ -5,8 +5,13 @@ Brown University
 """
 
 import tensorflow as tf
+import tensorflow_addons as tfa
+
 from tensorflow.keras.layers import \
-    Conv2D, MaxPool2D, Dropout, Flatten, Dense, AveragePooling2D, BatchNormalization, ZeroPadding2D, Conv2DTranspose, UpSampling2D, Activation, RandomNormal, Concatenate
+    Conv2D, MaxPool2D, Dropout, Flatten, Dense, AveragePooling2D, BatchNormalization, \
+    ZeroPadding2D, Conv2DTranspose, UpSampling2D, Concatenate, LeakyReLU, ReLU
+from tensorflow_addons.layers import InstanceNormalization
+from tensorflow.keras.lossees import MeanAbsoluteError
 
 import hyperparameters as hp
 
@@ -19,64 +24,174 @@ class GANILLA(tf.keras.Model):
         self.num_classes = hp.num_classes
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=hp.learning_rate)
 
-        # TODO: Instantiate the 2 pairs of Discrim/Gen
-        self.architecture = [
-            Generator(),
-            Discriminator(),
-            Generator(),
-            Discriminator()
-             
-        ]
+        self.g1 = Generator("toIllo")
+        self.g2 = Generator("toPhoto")
+        self.d1 = Discriminator("isIllo")
+        self.d2 = Discriminator("isPhoto")
+        self.lambda_cycle = 10.0
+        self.lambda_identity = 0.5
 
-    def call(self, x):
-        """ Passes input image through the network. """
-
-        for layer in self.architecture:
-            x = layer(x)
-
-        return x
+        self.cy_loss = MeanAbsoluteError()
+        self.id_loss = MeanAbsoluteError()
 
     @staticmethod
-    #CYCLE LOSS
-    def loss_fn(real_image, cycled_image):
-        """ Loss function for the model. """
-        # according to paper we need "two Minimax losses for each Generator and 
-        # Discriminator pair and one cycle consistency loss (L1)"
+    def cycle_loss(real, cycled):
+        """
+        Gives our model the property such that
+        input photo -> illustrator generator -> generated illustration -> photo generator -> output photo
+        input illustrator -> photo generator -> generated photo -> illustrator generator -> output illustration
+        
+        We want i/o photo and i/o illustrator to look the same.
 
-        # cycle gan uses cycle loss tho...so this is just cycle loss
-        loss1 = tf.reduce_mean(tf.abs(real_image - cycled_image))
-        # play around w param 
-        LAMBDA = 10
-        return LAMBDA * loss1
+        Note: I was concerned this will be automatically called in the pipeline for .compile() so I renamed it. - KS
+        """
+        # loss1 = tf.reduce_mean(tf.abs(real - cycled)) # Commented out for a consistent style with the identity loss. -KS
+        return self.lambda_cycle * self.cy_loss(real, cycled)
+
+    @staticmethod
+    def identity_loss(real, cycled):
+        """
+        Gives our model the property that generators will do this
+        illustrator -> illustrator generator -> illustrator
+        photo -> photo generator -> photo
+        """
+        return self.lambda_identity * self.lambda_cycle * self.id_loss(real, cycled)
+
+
+    def train_step(input_data):
+        """
+        input_data || tuple
+        Ideally this should be something that looks like (photos, illustration), aka (source, target)
+        in the model.fit() we can pass tf.data.Dataset.zip((photos, illustrations)).
+        (Source: https://www.tensorflow.org/guide/keras/customizing_what_happens_in_fit)
+
+        returns a dict mapping each loss to its value
+
+        NOTES:
+        My guess is that we have to do an actual train() function rather than just compute a single loss function because
+        we need more fine grained control over what gradients are updated, and since this model is composed of multiple losses.
+        I'm not sure what the consequence would be if we tried to throw this in a single loss function, but overriding the train_step function
+        seems like a valid approach.
+        -KS
+        """
+        photo, illo = input_data
+        # Need persistent to compute multiple gradients in the same computation as mentioned in the tf docs.
+        with tf.GradientTape(persistent=True) as tape:
+            # Call Generators
+            fake_illos = self.g1(photos)
+            fake_photos = self.g2(illos)
+
+            # Call Discriminators
+            disc_fake_illos = self.d1(fake_illos)
+            disc_real_illos = self.d1(illos)
+            disc_fake_photos = self.d2(fake_photos)
+            disc_real_photos = self.d2(photos)
+
+            # Adversarial loss
+            ad_illos_loss = self.g1.loss_fn(disc_fake_illos)
+            ad_photos_loss = self.g2.loss_fn(disc_fake_photos)
+
+            # Discriminator Loss
+            disc_illos_loss = self.d1.loss_fn(disc_fake_illos, disc_real_illos)
+            disc_photos_loss = self.d2.loss_fn(disc_fake_photos, disc_real_photos)
+
+            # Compute cyclic loss
+            cycle_photos = self.g2(fake_illos)
+            cycle_illos = self.g1(fake_photos)
+            cycle_photos_loss = cycle_loss(photos, cycle_photos)
+            cycle_illos_loss = cycle_loss(illos, cycle_illos)
+
+            # Compute identity losses
+            same_illos = self.g1(illos)
+            same_photos = self.g2(photos)
+            id_photos_loss = identity_loss(photos, same_photos)
+            id_illos_loss = identity_loss(illos, same_illos)
+
+            # Generator loss: adversarial + cylic + identity
+            gen_illos_loss = ad_illos_loss + cycle_illos_loss + id_illos_loss
+            gen_photos_loss = ad_photo_loss + cycle_photos_loss + id_photos_loss
+
+        # Compute gradients for generators and discriminators
+        grads_g1 = tape.gradient(gen_illos_loss, self.g1.trainable_variables)
+        grads_g2 = tape.gradient(gen_photos_loss, self.g2.trainable_variables)
+        grads_d1 = tape.gradient(disc_illos_loss, self.d1.trainable_variables)
+        grads_d2 = tape.gradient(disc_photos_loss, self.d2.trainable_variables)
+
+        # Apply gradients to generators and discriminators
+        self.g1.optimizer.apply_gradients(zip(grads_g1, self.g1.trainable_variables))
+        self.g2.optimizer.apply_gradients(zip(grads_g2, self.g2.trainable_variables))
+        self.d1.optimizer.apply_gradients(zip(grads_d1, self.d1.trainable_variables))
+        self.d2.optimizer.apply_gradients(zip(grads_d2, self.d2.trainable_variables))
+
+        # Return a dict mapping metric names to current value required by tf docs
+        return {
+            "gen_illos_loss": gen_illos_loss,
+            "gen_photos_loss": gen_photos_loss,
+            "disc_illos_loss": disc_illos_loss,
+            "disc_photos_loss": disc_photos_loss,
+        }
+
+    @staticmethod
+    def process_output(image):
+        """
+        Goes from [-1, 1] to [0, 255]
+        Helps us understand our generator output.
+        """
+        return (image * 127.5) + 127.5 
+
+    def generate_images(images):
+        """
+        Shows generated output this is more for visual evaluation
+        input: images || tensor of shape (batch size x 256 x 256 x 3), landscape photos
+        output: generated || tensor of same shape, illustrations
+        """
+        generated = self.g1(images)
+        generated = process_output(generated)
+        ## TODO: save as images in a directory we want.
+        return generated
+
+    def generate_cycle_images(images):
+        """
+        Test to see if our GAN pairing has the desired cyclic nature, for visual evaluation.
+        Ideally, the input and output should look the same.
+
+        input: images || tensor of shape (batch size x 256 x 256 x 3), landscape photos
+        output: cycle images || tensor of same shape, landscape photos
+        """"
+        res = self.g1(images)
+        res = self.g2(res)
+        ## TODO: save as images in a directory we want.
+        return process_output(generated)
 
 """
 The Generator model, containing modified RESNET blocks.
 """
 class Generator(tf.keras.Model):
-    def __init__(self):
+    def __init__(self, name=None):
         super(Generator, self).__init__()
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=hp.learning_rate)
+        GAMMA_INIT = keras.initializers.RandomNormal(mean=0.0, stddev=0.02)
+        self.name = name
 
         self.block1 = [
-            # original model seems to have a reflection pad??? unsure why
+            # Original model seems to have a reflection pad, but not sure why
+            # Block 1
             Conv2D(filters=64, kernel_size=7, strides=1, padding="same", name="block1_conv1"),
-            BatchNormalization(),
-            Activation("relu") # seems to go after normalization not CONV2D, need to fact check if this is legit
+            InstanceNormalization(gamma_initializer=GAMMA_INIT),
+            ReLU() # seems to go after normalization not CONV2D, need to fact check if this is legit
             # MaxPool2D(2, name="block1_conv1"),   
         ]
 
         self.pre_upsample = [
-            #notsure about filters, strides, padding, or output padding here
+            # Not sure about filters, strides, padding, or output padding here
             Conv2DTranspose(filters=512, kernel_size=(1,1), padding="same", outpadding=1)
         ]
 
         self.post_upsample = {
-            #notsure about filters, , padding, or output padding here
-
-            UpSampling2D(size=(2,2), interpolation="nearest"), #Might need to change the data_format param based on how our data is structured
-            Conv2DTranspose(filters=128, kernel_size=(1,1), padding="same", outpadding=1),
-            Conv2DTranspose(filters=64, kernel_size=(7,7), padding="same")
+            # Not sure about filters, , padding, or output padding here
+            Conv2DTranspose(filters=64, kernel_size=(1,1), padding="same", outpadding=1),
+            Conv2DTranspose(filters=64, kernel_size=(7,7), padding="same", outpadding=1)
         }
 
     def call(self, x):
@@ -87,26 +202,25 @@ class Generator(tf.keras.Model):
             x = layer(x)
 
         #TODO: a guess for the 4 downsampling blocks: call resnet on on 64, 128, 256 , 512
-
-        # og code seems do downsample twice ** currently up and down sampling twice like the diagram on page 5
-        #saving intermediate outputs for use in the upsampling skip connections
+        # Original code seems do downsample twice -- currently upsampling and downsampling twice to match the diagram on page 5
+        # Saving intermediate outputs for use in the upsampling skip connections
         layer_1_out = self.resnet(x, 64)
         layer_2_out = self.resnet(layer_1_out, 128)
         layer_3_out = self.resnet(layer_2_out, 256)
         x = self.resnet(layer_3_out, 512)
-        # og code seems to upsample twice 
 
         for layer in self.pre_upsample:
             x = layer(x)
 
-        x = self.upsample(x, layer_3_out, 64)
-        x = self.upsample(x, layer_2_out, 128)
-        x = self.upsample(x, layer_1_out, 256)
-        #not sure about size here
-                
+        # Original code seems to upsample twice 
+        x = self.upsample(x, layer_3_out)
+        x = self.upsample(x, layer_2_out)
+        x = self.upsample(x, layer_1_out)
+        # Not sure about the size
+        x = tf.image.resize(x, size=[5,7], method="nearest")
+        
         for layer in self.post_upsample(x):
             x = layer(x)
-
         return x
 
     @staticmethod
@@ -116,7 +230,6 @@ class Generator(tf.keras.Model):
 
         # the "real" labels to perform BCE on
         truth_real = tf.ones_like(disc_real_output)
-
         return bce(truth_real, disc_real_output)
 
     def upsample(inputs, skipinputs, filter_size):
@@ -128,7 +241,7 @@ class Generator(tf.keras.Model):
         x = up(inputs)
         y = conv(skipinputs)
         x += y
-        return 
+        return x
     
     def resnet(inputs, filter_size):
         """ Returns the output of a single resnet block """
@@ -137,31 +250,31 @@ class Generator(tf.keras.Model):
 
         #NOTE: Not totally sure of the strides, this line is a bit confusing: 
         # "We halve feature map size in each layer except Layer-I using convolutions with stride of 2."
-        #Re above: from the paper it looks like in layers 2, 3, and 4 the skip connecton in the first block must be convolved to the correct
-        #size before concatenation
-
+        # Re above: from the paper it looks like in layers 2, 3, and 4 the skip connecton in the first block must be convolved to the correct
+        # size before concatenation
 
         #TODO: Ask about rescoping the model (pretrain some resnet layers, reduce learnable parameters)
         KERNEL_INIT = RandomNormal(stddev=0.02) 
+        GAMMA_INIT = keras.initializers.RandomNormal(mean=0.0, stddev=0.02)
+
         KERNEL_SIZE = 3
         
         mod_resnet = [
             Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(2,2), padding="same", 
                 kernel_initializer=KERNEL_INIT, name="conv1"),
-            BatchNormalization(),
-            Activation("relu"),
-            MaxPool2D(strides=2),
+            InstanceNormalization(gamma_initializer=GAMMA_INIT),
+            ReLU(), 
+            MaxPool2d(strides=2),
             Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(2,2), padding="same", 
                 kernel_initializer=KERNEL_INIT, name="conv2"),
-            BatchNormalization(),
+            InstanceNormalization(gamma_initializer=GAMMA_INIT),
         ]
         
-        
         output = inputs
-        for l in mod_resnet:
-            output = l(output)
+        for layer in mod_resnet:
+            output = layer(output)
 
-        result = Concatenate()([output, inputs]) # "skip concatenation" mentioned in paper? not sure if thisi s how you do it
+        result = Concatenate()([output, inputs]) # "Skip concatenation" mentioned in paper, not sure if correctly implemented
 
         final_layer = [
             Conv2D(filters=filter_size, kernel_size=3, stride=(1,1), padding="same", activation="relu", kernel_initializer=KERNEL_INIT)
@@ -169,7 +282,7 @@ class Generator(tf.keras.Model):
         result = final_layer[0](result)
         return result
 
-
+        #TODO: NEED TO combine final_layer with above architecture
         # Vanilla RESNET18 Model from the paper here for reference.
         # vanilla_resnet = [
         #     Conv2D(filters=64, kernel_size=7, strides=(2,2), padding="same", 
@@ -210,55 +323,65 @@ Nice explanation of PatchGAN first bit: https://sahiltinky94.medium.com/understa
 Pix2Pix, could be relevant: https://machinelearningmastery.com/how-to-implement-pix2pix-gan-models-from-scratch-with-keras/
 """
 class Discriminator(tf.keras.Model):
-    def __init__(self):
+    def __init__(self, name=None):
         super(Discriminator, self).__init__()
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=hp.learning_rate)
+        self.name = name
 
         KERNEL_SIZE = 4
         STRIDE = 2
         RELU = .2
-        
+
+        # Weights initializer for the layers.
+        KERNEL_INIT = keras.initializers.RandomNormal(mean=0.0, stddev=0.02)
+        # Gamma initializer for instance normalization.
+        GAMMA_INIT = keras.initializers.RandomNormal(mean=0.0, stddev=0.02)
+
+        # Weird thing from the colab that I'll just leave here:
+        #          img_input = layers.Input(shape=input_img_size, name=name + "_img_input")
+        # ^ I believe this just instantiates the input as a tensor - KS
+
         self.layers = [
-            Conv2D(filters=64, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block1_conv2"),
+            # kernel_initializer 
+            Conv2D(filters=64, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block1_conv2"),
             LeakyReLU(RELU),
 
-            Conv2D(filters=128, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block2_conv1"),
-            BatchNormalization(), # Instance normalization
+            Conv2D(filters=128, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block2_conv1"),
+            InstanceNormalization(gamma_initializer=GAMMA_INIT), # Alternative: InstanceNormalization
             LeakyReLU(RELU),
 
-            Conv2D(filters=256, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block2_conv1"),
-            BatchNormalization(),
+            Conv2D(filters=256, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block2_conv1"),
+            InstanceNormalization(gamma_initializer=GAMMA_INIT),
             LeakyReLU(RELU),
 
-            Conv2D(filters=512, kernel_size=KERNEL_SIZE, strides=1, padding="same", name="block3_conv1"),
-            BatchNormalization(),
+            Conv2D(filters=512, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=1, padding="same", name="block3_conv1"),
+            InstanceNormalization(gamma_initializer=GAMMA_INIT),
             LeakyReLU(RELU),
 
-            Conv2D(filters=1, kernel_size=KERNEL_SIZE, strides=1, padding="same", activation="sigmoid", name="block4_conv1")
+            Conv2D(filters=1, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=1, padding="same", activation="sigmoid", name="block4_conv1")
         ]
 
-        # in: 64, out:128
+        # Conv1:  in: 64, out:128
         # batchnorm 2d 128
         # leaky relu
         # ----
-        # in: 128 out: 256
+        # Conv2:  in: 128, out: 256
         # batchnorm 2d 256
         # leaky relu
         # ---
-
-        # 256, 512
+        # Conv3:  in: 256, out: 512
         # stride = 1
         # batch norm 2d: 512
         # leaky relu
-
-        # --- Dense layer? :0
+        # --- 
+        # Dense layer? Convolution from 512 to 1
         # 512->1, stride=1
         # sigmoid
 
-
     def call(self, x):
-        x = self.layers(x)
+        for layer in self.layers:
+            x = layer(x)
         return x
 
     @staticmethod
@@ -275,3 +398,10 @@ class Discriminator(tf.keras.Model):
         truth_fake = tf.zeros_like(disc_fake_output) 
 
         return bce(truth_real, disc_real_output) + bce(truth_fake, disc_fake_output)
+
+        # Loss function for evaluating adversarial loss.
+        # adv_loss_fn = keras.losses.MeanSquaredError()
+        # def discriminator_loss_fn(real, fake):
+        #     real_loss = adv_loss_fn(tf.ones_like(real), real)
+        #     fake_loss = adv_loss_fn(tf.zeros_like(fake), fake)
+        #     return (real_loss + fake_loss) * 0.5
