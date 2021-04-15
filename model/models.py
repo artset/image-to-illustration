@@ -75,6 +75,7 @@ class GANILLA(tf.keras.Model):
         -KS
         """
         photo, illo = input_data
+        # Need persistent to compute multiple gradients in the same computation as mentioned in the tf docs.
         with tf.GradientTape(persistent=True) as tape:
             # Call Generators
             fake_illos = self.g1(photos)
@@ -144,18 +145,20 @@ class GANILLA(tf.keras.Model):
         """
         generated = self.g1(images)
         generated = process_output(generated)
-        ## TODO: save as images in a diretory we want.
+        ## TODO: save as images in a directory we want.
         return generated
 
     def generate_cycle_images(images):
         """
-        Test to see if our GAN pairing has the desired cyclic nature, for visual evaluation
+        Test to see if our GAN pairing has the desired cyclic nature, for visual evaluation.
+        Ideally, the input and output should look the same.
+
         input: images || tensor of shape (batch size x 256 x 256 x 3), landscape photos
         output: cycle images || tensor of same shape, landscape photos
         """"
         res = self.g1(images)
         res = self.g2(res)
-        ## TODO: save as images in a diretory we want.
+        ## TODO: save as images in a directory we want.
         return process_output(generated)
 
 """
@@ -169,7 +172,7 @@ class Generator(tf.keras.Model):
         GAMMA_INIT = keras.initializers.RandomNormal(mean=0.0, stddev=0.02)
         self.name = name
 
-        self.layers = [
+        self.block1 = [
             # Original model seems to have a reflection pad, but not sure why
             # Block 1
             Conv2D(filters=64, kernel_size=7, strides=1, padding="same", name="block1_conv1"),
@@ -193,7 +196,7 @@ class Generator(tf.keras.Model):
         """ Passes the image through the network. """
         # TODO: the TAN BLOCKS between skip connections appear to be conv layers needed to properly resize things so that they can be concatenated or summed togehter!!!!
         # Need to add this to the resnet structure overal ^^
-        for layer in self.layer:
+        for layer in self.block1:
             x = layer(x)
 
         #TODO: a guess for the 4 downsampling blocks: call resnet on on 64, 128, 256 , 512
@@ -277,8 +280,6 @@ class Generator(tf.keras.Model):
         return result
 
         #TODO: NEED TO combine final_layer with above architecture
-
-
         # Vanilla RESNET18 Model from the paper here for reference.
         # vanilla_resnet = [
         #     Conv2D(filters=64, kernel_size=7, strides=(2,2), padding="same", 
@@ -336,7 +337,8 @@ class Discriminator(tf.keras.Model):
 
         # Weird thing from the colab that I'll just leave here:
         #          img_input = layers.Input(shape=input_img_size, name=name + "_img_input")
-        
+        # ^ I believe this just instantiates the input as a tensor - KS
+
         self.layers = [
             # kernel_initializer 
             Conv2D(filters=64, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block1_conv2"),
