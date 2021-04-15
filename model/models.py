@@ -88,8 +88,8 @@ class GANILLA(tf.keras.Model):
             disc_real_photos = self.d2(photos)
 
             # Adversarial loss
-            ad_illos_loss = self.g1.loss_fn(illos)
-            ad_photos_loss = self.g2.loss_fn(photos)
+            ad_illos_loss = self.g1.loss_fn(disc_fake_illos)
+            ad_photos_loss = self.g2.loss_fn(disc_fake_photos)
 
             # Discriminator Loss
             disc_illos_loss = self.d1.loss_fn(disc_fake_illos, disc_real_illos)
