@@ -151,10 +151,15 @@ def main():
     # Print summary of model
 
     batch_size = 64
-    (x_train, _), (x_test, _) = keras.datasets.mnist.load_data()
-    all_digits = np.concatenate([x_train, x_test])
-    all_digits = all_digits.astype("float32") / 255.0
-    all_digits = np.reshape(all_digits, (-1, 28, 28, 1))
+    # (x_train, _), (x_test, _) = keras.datasets.mnist.load_data()
+
+    # print("x train shape", x_train.shape)
+    # all_digits = np.concatenate([x_train, x_test])
+    # all_digits = all_digits.astype("float32") / 255.0
+    # all_digits = np.reshape(all_digits, (-1, 28, 28, 1))
+    # print(all_digits.shape)
+
+    all_digits = np.zeros((70, 28, 28,1)).astype("float32")
     dataset = tf.data.Dataset.from_tensor_slices(all_digits)
     dataset = dataset.shuffle(buffer_size=1024).batch(batch_size)
 
@@ -183,10 +188,10 @@ def main():
 
     # print("compiling model graph...")
     # # Compile model graph
-    model.compile(
-        # optimizer=model.optimizer,
-        # loss=model.loss_fn,
-        metrics=["gen_illos_loss", "gen_photos_loss", "disc_illos_loss", "disc_photos_loss"])
+    # model.compile(
+    #     # optimizer=model.optimizer,
+    #     # loss=model.loss_fn,
+    #     metrics=["gen_illos_loss", "gen_photos_loss", "disc_illos_loss", "disc_photos_loss"])
 
     # if ARGS.evaluate:
     #     test(model, datasets.test_data)
@@ -197,7 +202,7 @@ def main():
     #     path = ARGS.data + os.sep + ARGS.lime_image
     #     LIME_explainer(model, path, datasets.preprocess_fn)
     # else:
-    train(model, datasets, checkpoint_path, logs_path, init_epoch)
+    # train(model, datasets, checkpoint_path, logs_path, init_epoch)
     
 
 
