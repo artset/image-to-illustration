@@ -6,7 +6,7 @@ from tensorflow.keras.layers import \
     ZeroPadding2D, Conv2DTranspose, UpSampling2D, Concatenate, LeakyReLU, ReLU
 from tensorflow_addons.layers import InstanceNormalization
 from tensorflow.keras.losses import MeanAbsoluteError
-
+import numpy as np
 import hyperparameters as hp
 
 """
@@ -200,41 +200,98 @@ class Generator(tf.keras.Model):
             Conv2DTranspose(filters=512, kernel_size=(1,1), strides=2, padding="same", output_padding=1)
         ]
 
-        self.post_upsample = {
-            # Not sure about filters, , padding, or output padding here
-            Conv2DTranspose(filters=64, kernel_size=(1,1), strides=2, padding="same", output_padding=1),
-            Conv2DTranspose(filters=64, kernel_size=(7,7), strides=2, padding="same", output_padding=1)
-        }
 
-    def call(self, x):
+        self.post_upsample = [
+            # Not sure about stride, padding, or output padding here
+            Conv2DTranspose(filters=64, kernel_size=(1,1), strides=1, padding="same"),
+            Conv2DTranspose(filters=3, kernel_size=(7,7), strides=1, padding="same")
+        ]
+
+    # simplified call func 
+    def call_simple(self, x):
         """ Passes the image through the network. """
         # TODO: the TAN BLOCKS between skip connections appear to be conv layers needed to properly resize things so that they can be concatenated or summed togehter!!!!
         # Need to add this to the resnet structure overal ^^
         for layer in self.block1:
             x = layer(x)
 
+        # oen less resnet block
+        #saving intermediate outputs for use in the upsampling skip connections
+        layer_1a_out = self.resnet(x, 64, "layer_1_a")
+        #print("lay_1_a: ", layer_1a_out.shape)
+        layer_1b_out = self.resnet(layer_1a_out, 64, "layer_b")
+        #print("lay_1_b: ", layer_1b_out.shape)
+        layer_2a_out = self.resnet(layer_1b_out, 64, "layer_2_a")
+        #print("lay_2_a: ", layer_2a_out.shape)
+        x = self.resnet(layer_2a_out, 128, "layer_b")
+        #print("lay_2_b: ", x.shape)
+
+        for layer in self.pre_upsample_simple:
+            x = layer(x)
+            #print(x.shape)
+
+        # Original code seems to upsample twice 
+        x = self.upsample(x, layer_1b_out, 128)
+        #print("up1: ", x.shape)
+        # Not sure about the size
+        #up = UpSampling2D(size=(2,2), interpolation="nearest")
+        #x = up(x)
+        
+        for layer in self.post_upsample:
+            x = layer(x)
+            #print("post: ", x.shape)
+        return x
+
+    def call(self, x):
+        """ Passes the image through the network. """
+        # TODO: the TAN BLOCKS between skip connections appear to be conv layers needed to properly resize things so that they can be concatenated or summed togehter!!!!
+        # Need to add this to the resnet structure overal ^^
+        #print("start: ", x.shape)
+        for layer in self.block1:
+            x = layer(x)
+
         #TODO: a guess for the 4 downsampling blocks: call resnet on on 64, 128, 256 , 512
         # Original code seems do downsample twice -- currently upsampling and downsampling twice to match the diagram on page 5
         # Saving intermediate outputs for use in the upsampling skip connections
-        layer_1_out = self.resnet(x, 64)
-        layer_2_out = self.resnet(layer_1_out, 128)
-        layer_3_out = self.resnet(layer_2_out, 256)
-        x = self.resnet(layer_3_out, 512)
+
+        layer_1a_out = self.resnet(x, 64, "layer_1_a")
+        #print("lay_1_a: ", layer_1a_out.shape)
+        layer_1b_out = self.resnet(layer_1a_out, 64, "layer_b")
+        #print("lay_1_b: ", layer_1b_out.shape)
+        layer_2a_out = self.resnet(layer_1a_out, 64, "layer_2_a")
+        #print("lay_2_a: ", layer_2a_out.shape)
+        layer_2b_out = self.resnet(layer_2a_out, 128, "layer_b")
+        #print("lay_2_b: ", layer_2b_out.shape)
+        layer_3a_out = self.resnet(layer_2b_out, 128, "layer_2_a")
+        #print("lay_3_a: ", layer_3a_out.shape)
+        layer_3b_out = self.resnet(layer_3a_out, 256, "layer_b")
+        #print("lay_3_b: ", layer_3b_out.shape)
+        layer_4a_out = self.resnet(layer_3b_out, 256, "layer_2_a")
+        #print("lay_4_a: ", layer_4a_out.shape)
+        x = self.resnet(layer_4a_out, 512, "layer_b")
+        #print("lay_4_b: ", x.shape)
 
         for layer in self.pre_upsample:
             x = layer(x)
+            #print(x.shape)
 
         # Original code seems to upsample twice 
-        x = self.upsample(x, layer_3_out)
-        x = self.upsample(x, layer_2_out)
-        x = self.upsample(x, layer_1_out)
+
+        x = self.upsample(x, layer_3b_out, 512)
+        #print("up1: ", x.shape)
+        x = self.upsample(x, layer_2b_out, 256)
+        #print("up2: ", x.shape)
+        x = self.upsample(x, layer_1b_out, 128)
+        #print("up3: ", x.shape)
         # Not sure about the size
-        tf.image.resize(image, size=[5,7], method="nearest")
+        #up = UpSampling2D(size=(2,2), interpolation="nearest")
+        #x = up(x)
+        #print("up4: ", x.shape)
         
-        for layer in self.post_upsample(x):
+        for layer in self.post_upsample:
             x = layer(x)
 
-        # x = Dense(100)(x)
+            #print("post: ", x.shape)
         return x
 
     @staticmethod
@@ -246,17 +303,23 @@ class Generator(tf.keras.Model):
         truth_real = tf.ones_like(disc_real_output)
         return bce(truth_real, disc_real_output)
 
-    def upsample(self, inputs, skipinputs):
+
+    def upsample(self,inputs, skipinputs, filter_size):
         """Returns output of upsampling chunk with addition of skip connection layer"""
-        x = tf.image.resize(inputs, size=[5,7], method="nearest")
+        print("in,skip: ", inputs.shape, skipinputs.shape)
+        up = UpSampling2D(size=(2,2), interpolation="nearest") #Might need to change the data_format param based on how our data is structured
         #TODO: convolve skipinput to be correct size and then sum with x 
-        #      not sure about filters, kernel size, strides, padding, or output padding here
-        conv = Conv2DTranspose(filters=64, kernel_size=(1,1), padding="same", outpadding=1)
-        y = conv(skipinputs)
+        #paper seems to say kernel_size = 1,1 but repo says 3,3
+        conv_x = Conv2D(filters=filter_size, kernel_size=(1,1), strides=1, padding="same")
+        conv_y = Conv2DTranspose(filters=filter_size, kernel_size=(1,1), strides=1, padding="same")
+        x = up(inputs)
+        x = conv_x(x)
+        y = conv_y(skipinputs)
+        print(x.shape,y.shape)
         x += y
         return x
     
-    def resnet(self, inputs, filter_size):
+    def resnet(self, inputs, filter_size, lay_type):
         """ Returns the output of a single resnet block """
         #TODO: Not sure if for each resnet block, the filter size decreases so I have it as a variable rn incase it halves.
         # RESNET18 does that but TBH the architecture is a little different from what I see in the paper.
@@ -271,27 +334,46 @@ class Generator(tf.keras.Model):
         GAMMA_INIT = tf.keras.initializers.RandomNormal(mean=0.0, stddev=0.02)
 
         KERNEL_SIZE = 3
-        
-        mod_resnet = [
-            Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(2,2), padding="same", 
-                kernel_initializer=KERNEL_INIT, name="conv1"),
-            InstanceNormalization(gamma_initializer=GAMMA_INIT),
-            ReLU(), 
-            MaxPool2D(strides=2),
-            Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(2,2), padding="same", 
-                kernel_initializer=KERNEL_INIT, name="conv2"),
-            InstanceNormalization(gamma_initializer=GAMMA_INIT),
-        ]
+
+        if lay_type == "layer_1_a" or lay_type == "layer_b": 
+            mod_resnet = [
+                Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(1,1), padding="same", 
+                    kernel_initializer=KERNEL_INIT, name="conv1"),
+                InstanceNormalization(gamma_initializer=GAMMA_INIT),
+                ReLU(), 
+                #MaxPool2D(strides=2),
+                Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(1,1), padding="same", 
+                    kernel_initializer=KERNEL_INIT, name="conv2"),
+                InstanceNormalization(gamma_initializer=GAMMA_INIT),
+            ]
+        elif lay_type == "layer_2_a":
+            mod_resnet = [
+                Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(2,2), padding="same", 
+                    kernel_initializer=KERNEL_INIT, name="conv1"),
+                InstanceNormalization(gamma_initializer=GAMMA_INIT),
+                ReLU(), 
+                #MaxPool2D(strides=2),
+                Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(1,1), padding="same", 
+                    kernel_initializer=KERNEL_INIT, name="conv2"),
+                InstanceNormalization(gamma_initializer=GAMMA_INIT),
+            ]
         
         output = inputs
         for layer in mod_resnet:
             output = layer(output)
 
-        # result = Concatenate()([output, inputs]) # "Skip concatenation" mentioned in paper, not sure if correctly implemented
 
-        final_layer =  Conv2D(filters=filter_size, kernel_size=3, strides=(1,1), padding="same", activation="relu", kernel_initializer=KERNEL_INIT)
+        size_mod = Conv2D(filters=filter_size, kernel_size=3, strides=(2,2), padding="same", activation="relu", kernel_initializer=KERNEL_INIT)
         
-        output = final_layer(output)
+        if lay_type == "layer_2_a": 
+            inputs = size_mod(inputs)
+
+        result = Concatenate()([output, inputs]) # "Skip concatenation" mentioned in paper, not sure if correctly implemented
+
+        final_layer = [
+            Conv2D(filters=filter_size, kernel_size=3, strides=(1,1), padding="same", activation="relu", kernel_initializer=KERNEL_INIT)
+        ]
+        result = final_layer[0](result)
 
         return output
 
@@ -300,7 +382,7 @@ class Generator(tf.keras.Model):
         # vanilla_resnet = [
         #     Conv2D(filters=64, kernel_size=7, strides=(2,2), padding="same", 
         #         kernel_initializer="random_normal", activation = "relu", name="conv1"),
-        #     MaxPool2D(3, stride=2),
+        #     MaxPool2D(3, strides=2),
             
         #     Conv2D(filters=64, kernel_size=3, strides=(2,2), padding="same", 
         #         kernel_initializer="random_normal", activation = "relu", name="conv2_x"),

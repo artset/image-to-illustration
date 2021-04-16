@@ -16,8 +16,10 @@ from PIL import Image
 import matplotlib as mpl
 
 import hyperparameters as hp
-from models import Ganilla
+
 from preprocess import Dataset
+from models import Ganilla, Generator
+
 from skimage.transform import resize
 from tensorboard_utils import  CustomModelSaver
 
@@ -72,35 +74,35 @@ def parse_args():
     return parser.parse_args()
 
 
-# def train(model, datasets, checkpoint_path, logs_path, init_epoch):
-#     """ Training routine. """
+def train(model, datasets, checkpoint_path, logs_path, init_epoch):
+    """ Training routine. """
 
-#     # Keras callbacks for training
-#     callback_list = [
-#         tf.keras.callbacks.TensorBoard(
-#             log_dir=logs_path,
-#             update_freq='batch',
-#             profile_batch=0),
-#         # ImageLabelingLogger(logs_path, datasets),
-#         CustomModelSaver(checkpoint_path, hp.max_num_weights)
-#     ]
+    # Keras callbacks for training
+    callback_list = [
+        tf.keras.callbacks.TensorBoard(
+            log_dir=logs_path,
+            update_freq='batch',
+            profile_batch=0),
+        # ImageLabelingLogger(logs_path, datasets),
+        CustomModelSaver(checkpoint_path, hp.max_num_weights)
+    ]
 
-#     # Include confusion logger in callbacks if flag set
-#     if ARGS.confusion:
-#         callback_list.append(ConfusionMatrixLogger(logs_path, datasets))
+    # Include confusion logger in callbacks if flag set
+    if ARGS.confusion:
+        callback_list.append(ConfusionMatrixLogger(logs_path, datasets))
 
-#     train_data = np.zeros((5, 256, 256))
-#     # Begin training
-#     model.fit(
-#         x = train_data,
-#         # x=datasets.train_data,
-#         # validation_data=datasets.test_data,
-#         epochs=hp.num_epochs,
-#         batch_size=None,
-#         callbacks=callback_list,
-#         initial_epoch=init_epoch,
-#     )
-#     model.summary()
+    train_data = np.zeros((5, 256, 256))
+    # Begin training
+    model.fit(
+        x = train_data,
+        # x=datasets.train_data,
+        # validation_data=datasets.test_data,
+        epochs=hp.num_epochs,
+        batch_size=None,
+        callbacks=callback_list,
+        initial_epoch=init_epoch,
+    )
+    model.summary()
 
 
 # def test(model, test_data):
@@ -155,29 +157,28 @@ def main():
     os.chdir(sys.path[0])
 
     # datasets = Datasets(ARGS.data)
-
     illo_data = Dataset("../data/train/illustration", "../data/test/illustration")
     photo_data = Dataset("../data/train/landscape", "../data/test/landscape")
 
 
-    # Create GANILLA model
-    ganilla = Ganilla()
+    # # Create GANILLA model
+    # ganilla = Ganilla()
 
-    # # Compile the model
-    ganilla.compile(
-        gen1_optimizer=ganilla.g1.optimizer,
-        gen2_optimizer=ganilla.g2.optimizer,
-        disc1_optimizer=ganilla.d1.optimizer,
-        disc2_optimizer=ganilla.d2.optimizer,
-        gen1_loss_fn=ganilla.g1.loss_fn,
-        disc2_loss_fn=ganilla.d1.loss_fn,
-    )
+    # # # Compile the model
+    # ganilla.compile(
+    #     gen1_optimizer=ganilla.g1.optimizer,
+    #     gen2_optimizer=ganilla.g2.optimizer,
+    #     disc1_optimizer=ganilla.d1.optimizer,
+    #     disc2_optimizer=ganilla.d2.optimizer,
+    #     gen1_loss_fn=ganilla.g1.loss_fn,
+    #     disc2_loss_fn=ganilla.d1.loss_fn,
+    # )
 
 
-    ganilla.fit(
-        tf.data.Dataset.zip((photo_data.train_data, illo_data.train_data)),
-        epochs=1
-    )
+    # ganilla.fit(
+    #     tf.data.Dataset.zip((photo_data.train_data, illo_data.train_data)),
+    #     epochs=1
+    # )
 
     # model = Ganilla()
     # # model(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
@@ -185,6 +186,14 @@ def main():
     #     "ganilla" + os.sep + timestamp + os.sep
     # logs_path = "logs" + os.sep + "ganilla" + \
     #     os.sep + timestamp + os.sep
+
+
+    model = Generator()
+    model(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
+    checkpoint_path = "checkpoints" + os.sep + \
+        "ganilla" + os.sep + timestamp + os.sep
+    logs_path = "logs" + os.sep + "ganilla" + \
+        os.sep + timestamp + os.sep
 
    
     # # Load checkpoints
@@ -200,10 +209,10 @@ def main():
 
     # print("compiling model graph...")
     # # Compile model graph
-    # model.compile(
-    #     # optimizer=model.optimizer,
-    #     # loss=model.loss_fn,
-    #     metrics=["gen_illos_loss", "gen_photos_loss", "disc_illos_loss", "disc_photos_loss"])
+    model.compile(
+        # optimizer=model.optimizer,
+        # loss=model.loss_fn,
+        metrics=["gen_illos_loss", "gen_photos_loss", "disc_illos_loss", "disc_photos_loss"])
 
     # if ARGS.evaluate:
     #     test(model, datasets.test_data)
@@ -214,7 +223,7 @@ def main():
     #     path = ARGS.data + os.sep + ARGS.lime_image
     #     LIME_explainer(model, path, datasets.preprocess_fn)
     # else:
-    # train(model, datasets, checkpoint_path, logs_path, init_epoch)
+    train(model, datasets, checkpoint_path, logs_path, init_epoch)
     
 
 
