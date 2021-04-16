@@ -29,26 +29,32 @@ class Ganilla(tf.keras.Model):
 
     def compile(
         self,
-        gen1_optimizer,
-        gen2_optimizer,
-        disc1_optimizer,
-        disc2_optimizer,
-        gen1_loss_fn,
-        disc2_loss_fn,
     ):
         super(Ganilla, self).compile()
-        self.gen1_optimizer = gen1_optimizer
-        self.gen2_optimizer = gen2_optimizer
-        self.disc1_optimizer = disc1_optimizer
-        self.disc2_optimizer = disc2_optimizer
-        self.generator_loss_fn = gen1_loss_fn
-        self.discriminator_loss_fn = disc2_loss_fn
-        self.cy_loss = tf.keras.losses.MeanAbsoluteError()
-        self.id_loss = tf.keras.losses.MeanAbsoluteError()
 
 
-    @staticmethod
-    def cycle_loss(real, cycled):
+
+    # def compile(
+    #     self,
+    #     gen1_optimizer,
+    #     gen2_optimizer,
+    #     disc1_optimizer,
+    #     disc2_optimizer,
+    #     gen1_loss_fn,
+    #     disc2_loss_fn,
+    # ):
+    #     super(Ganilla, self).compile()
+    #     self.gen1_optimizer = gen1_optimizer
+    #     self.gen2_optimizer = gen2_optimizer
+    #     self.disc1_optimizer = disc1_optimizer
+    #     self.disc2_optimizer = disc2_optimizer
+    #     self.generator_loss_fn = gen1_loss_fn
+    #     self.discriminator_loss_fn = disc2_loss_fn
+    #     self.cy_loss = tf.keras.losses.MeanAbsoluteError()
+    #     self.id_loss = tf.keras.losses.MeanAbsoluteError()
+
+
+    def cycle_loss(self, real, cycled):
         """
         Gives our model the property such that
         input photo -> illustrator generator -> generated illustration -> photo generator -> output photo
@@ -61,8 +67,7 @@ class Ganilla(tf.keras.Model):
         # loss1 = tf.reduce_mean(tf.abs(real - cycled)) # Commented out for a consistent style with the identity loss. -KS
         return self.lambda_cycle * self.cy_loss(real, cycled)
 
-    @staticmethod
-    def identity_loss(real, cycled):
+    def identity_loss(self, real, cycled):
         """
         Gives our model the property that generators will do this
         illustrator -> illustrator generator -> illustrator
@@ -70,7 +75,7 @@ class Ganilla(tf.keras.Model):
         """
         return self.lambda_identity * self.lambda_cycle * self.id_loss(real, cycled)
 
-    @tf.function
+    # @tf.function
     def train_step(self, input_data):
         """
         input_data || tuple
@@ -88,21 +93,31 @@ class Ganilla(tf.keras.Model):
         -KS
         """
         photos, illos = input_data
+        print("photos shape", photos.shape)
         # Need persistent to compute multiple gradients in the same computation as mentioned in the tf docs.
         with tf.GradientTape(persistent=True) as tape:
             # Call Generators
             fake_illos = self.g1(photos)
             fake_photos = self.g2(illos)
 
+            print("fake_y", fake_photos.shape)
+            print("fake_x", fake_illos.shape)
+
             # Call Discriminators
             disc_fake_illos = self.d1(fake_illos)
             disc_real_illos = self.d1(illos)
             disc_fake_photos = self.d2(fake_photos)
             disc_real_photos = self.d2(photos)
-
+            print("disc_real_x", disc_real_illos.shape)
+            print("disc_real_y", disc_real_photos.shape)
+            print("disc_fake_x", disc_fake_illos.shape)
+            print("disc_fake_y", disc_fake_photos.shape)
+            print("disc real x", disc_real_illos)
             # Adversarial loss
             ad_illos_loss = self.g1.loss_fn(disc_fake_illos)
             ad_photos_loss = self.g2.loss_fn(disc_fake_photos)
+            print("g1 loss", self.g1.loss_fn)
+            print("ad illo loss", ad_illos_loss)
 
             # Discriminator Loss
             disc_illos_loss = self.d1.loss_fn(disc_fake_illos, disc_real_illos)
@@ -111,18 +126,18 @@ class Ganilla(tf.keras.Model):
             # Compute cyclic loss
             cycle_photos = self.g2(fake_illos)
             cycle_illos = self.g1(fake_photos)
-            cycle_photos_loss = cycle_loss(photos, cycle_photos)
-            cycle_illos_loss = cycle_loss(illos, cycle_illos)
+            cycle_photos_loss = self.cycle_loss(photos, cycle_photos)
+            cycle_illos_loss = self.cycle_loss(illos, cycle_illos)
 
             # Compute identity losses
             same_illos = self.g1(illos)
             same_photos = self.g2(photos)
-            id_photos_loss = identity_loss(photos, same_photos)
-            id_illos_loss = identity_loss(illos, same_illos)
+            id_photos_loss = self.identity_loss(photos, same_photos)
+            id_illos_loss = self.identity_loss(illos, same_illos)
 
             # Generator loss: adversarial + cylic + identity
             gen_illos_loss = ad_illos_loss + cycle_illos_loss + id_illos_loss
-            gen_photos_loss = ad_photo_loss + cycle_photos_loss + id_photos_loss
+            gen_photos_loss = ad_photos_loss + cycle_photos_loss + id_photos_loss
 
         # Compute gradients for generators and discriminators
         grads_g1 = tape.gradient(gen_illos_loss, self.g1.trainable_variables)
@@ -316,7 +331,7 @@ class Generator(tf.keras.Model):
         x = up(inputs)
         x = conv_x(x)
         y = conv_y(skipinputs)
-        print(x.shape,y.shape)
+        # print(x.shape,y.shape)
         x += y
         return x
     

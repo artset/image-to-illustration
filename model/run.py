@@ -87,10 +87,6 @@ def train(model, checkpoint_path, logs_path, init_epoch):
     #     CustomModelSaver(checkpoint_path, hp.max_num_weights)
     # ]
 
-    # Include confusion logger in callbacks if flag set
-    # if ARGS.confusion:
-    #     callback_list.append(ConfusionMatrixLogger(logs_path, datasets))
-
     train_data = np.zeros((1, 256, 256, 3))
     # Begin training
     model.fit(
@@ -113,19 +109,6 @@ def train(model, checkpoint_path, logs_path, init_epoch):
 #         x=test_data,
 #         verbose=1,
 #     )
-# Loss function for evaluating adversarial loss
-adv_loss_fn = keras.losses.MeanSquaredError()
-
-def generator_loss_fn(fake):
-    fake_loss = adv_loss_fn(tf.ones_like(fake), fake)
-    return fake_loss
-
-
-# Define the loss function for the discriminators
-def discriminator_loss_fn(real, fake):
-    real_loss = adv_loss_fn(tf.ones_like(real), real)
-    fake_loss = adv_loss_fn(tf.zeros_like(fake), fake)
-    return (real_loss + fake_loss) * 0.5
 
 
 def main():
@@ -160,24 +143,24 @@ def main():
     photo_data = Dataset("../data/train/landscape", "../data/test/landscape")
 
 
-    # # Create GANILLA model
-    # ganilla = Ganilla()
+    # Create GANILLA model
+    ganilla = Ganilla()
 
-    # # # Compile the model
-    # ganilla.compile(
-    #     gen1_optimizer=ganilla.g1.optimizer,
-    #     gen2_optimizer=ganilla.g2.optimizer,
-    #     disc1_optimizer=ganilla.d1.optimizer,
-    #     disc2_optimizer=ganilla.d2.optimizer,
-    #     gen1_loss_fn=ganilla.g1.loss_fn,
-    #     disc2_loss_fn=ganilla.d1.loss_fn,
-    # )
+    # # Compile the model
+    ganilla.compile(
+        # gen1_optimizer=ganilla.g1.optimizer,
+        # gen2_optimizer=ganilla.g2.optimizer,
+        # disc1_optimizer=ganilla.d1.optimizer,
+        # disc2_optimizer=ganilla.d2.optimizer,
+        # gen1_loss_fn=ganilla.g1.loss_fn,
+        # disc2_loss_fn=ganilla.d1.loss_fn,
+        # metrics=["gen_illos_loss", "gen_photos_loss", "disc_illos_loss", "disc_photos_loss"]
+    )
 
-
-    # ganilla.fit(
-    #     tf.data.Dataset.zip((photo_data.train_data, illo_data.train_data)),
-    #     epochs=1
-    # )
+    ganilla.fit(
+        tf.data.Dataset.zip((photo_data.train_data, illo_data.train_data)),
+        epochs=1
+    )
 
     # model = Ganilla()
     # # model(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
@@ -186,13 +169,13 @@ def main():
     # logs_path = "logs" + os.sep + "ganilla" + \
     #     os.sep + timestamp + os.sep
 
-
-    model = Generator()
-    model(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
-    checkpoint_path = "checkpoints" + os.sep + \
-        "ganilla" + os.sep + timestamp + os.sep
-    logs_path = "logs" + os.sep + "ganilla" + \
-        os.sep + timestamp + os.sep
+    ######## JUST TESTING GENERATOR
+    # model = Generator()
+    # model(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
+    # checkpoint_path = "checkpoints" + os.sep + \
+    #     "ganilla" + os.sep + timestamp + os.sep
+    # logs_path = "logs" + os.sep + "ganilla" + \
+    #     os.sep + timestamp + os.sep
 
    
     # # Load checkpoints
@@ -208,10 +191,10 @@ def main():
 
     # print("compiling model graph...")
     # # Compile model graph
-    model.compile(
-        # optimizer=model.optimizer,
-        # loss=model.loss_fn,
-        metrics=["gen_illos_loss", "gen_photos_loss", "disc_illos_loss", "disc_photos_loss"])
+    # model.compile(
+    #     # optimizer=model.optimizer,
+    #     # loss=model.loss_fn,
+    #     metrics=["gen_illos_loss", "gen_photos_loss", "disc_illos_loss", "disc_photos_loss"])
 
     # if ARGS.evaluate:
     #     test(model, datasets.test_data)
@@ -222,7 +205,7 @@ def main():
     #     path = ARGS.data + os.sep + ARGS.lime_image
     #     LIME_explainer(model, path, datasets.preprocess_fn)
     # else:
-    train(model, checkpoint_path, logs_path, init_epoch)
+    # train(model, checkpoint_path, logs_path, init_epoch)
     
 
 

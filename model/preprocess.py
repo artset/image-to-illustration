@@ -14,7 +14,7 @@ tfds.disable_progress_bar()
 autotune = tf.data.experimental.AUTOTUNE
 
 orig_img_size = (512, 512)
-input_img_size = (1, 256, 256, 3)
+input_img_size = (256, 256, 3)
 
 
 class Dataset():
@@ -27,7 +27,7 @@ class Dataset():
         self.test_data = self.apply_preprocess(self.get_data(data_path_test, False, False)) # dont prprocess later
 
     def get_data(self, path, shuffle, augment):
-        dataset =tf.keras.preprocessing.image_dataset_from_directory(path, image_size=(512, 512), batch_size=hp.batch_size, label_mode=None, shuffle=True, class_names=None)
+        dataset =tf.keras.preprocessing.image_dataset_from_directory(path, image_size=(512, 512), label_mode=None, shuffle=True, class_names=None)
         return dataset
 
     def normalize_img(self, img):
@@ -40,12 +40,16 @@ class Dataset():
 
     def preprocess_train_image(self, img):
         # Random flip
+        # print(img.shape)
+        # print(img[0])
+        img = img[0]
         img = tf.image.random_flip_left_right(img)
         # Resize to the original size first
         img = tf.image.resize(img, [*orig_img_size])
         # Random crop to 256X256
         other_img = tf.image.random_crop(img, size=[*input_img_size])
         img = tf.image.random_crop(img, size=[*input_img_size])
+        print(img.shape)
         # Normalize the pixel values in the range 0-1
         img = self.normalize_img(img)
         other_img = self.normalize_img(other_img)
@@ -57,6 +61,8 @@ class Dataset():
 		)
         data = data.flat_map(self.flatten)
         data = data.shuffle(10000)
+        data = data.batch(hp.batch_size)
+        print(type(data))
 
         return data
 
