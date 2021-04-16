@@ -215,10 +215,10 @@ class Ganilla(keras.Model):
         lambda_identity=0.5,
     ):
         super(Ganilla, self).__init__()
-        self.gen_G = generator_G
-        self.gen_F = generator_F
-        self.disc_X = discriminator_X
-        self.disc_Y = discriminator_Y
+        self.g1 = generator_G
+        self.g2 = generator_F
+        self.d1 = discriminator_X
+        self.d2 = discriminator_Y
         self.lambda_cycle = lambda_cycle
         self.lambda_identity = lambda_identity
 
@@ -241,47 +241,47 @@ class Ganilla(keras.Model):
         self.cycle_loss_fn = keras.losses.MeanAbsoluteError()
         self.identity_loss_fn = keras.losses.MeanAbsoluteError()
 
-    def train_step(self, batch_data):
-        real_x, real_y = batch_data
+    def train_step(self, data):
+        real_photo, real_illo = data
 
         with tf.GradientTape(persistent=True) as tape:
             # Horse to fake zebra
-            fake_y = self.gen_G(real_x, training=True)
+            fake_y = self.g1(real_photo, training=True)
             # Zebra to fake horse -> y2x
-            fake_x = self.gen_F(real_y, training=True)
+            fake_x = self.g2(real_illo, training=True)
 
             # Cycle (Horse to fake zebra to fake horse): x -> y -> x
-            cycled_x = self.gen_F(fake_y, training=True)
+            cycled_x = self.g2(fake_y, training=True)
             # Cycle (Zebra to fake horse to fake zebra) y -> x -> y
-            cycled_y = self.gen_G(fake_x, training=True)
+            cycled_y = self.g1(fake_x, training=True)
 
             # Identity mapping
-            same_x = self.gen_F(real_x, training=True)
-            same_y = self.gen_G(real_y, training=True)
+            same_x = self.g2(real_photo, training=True)
+            same_y = self.g1(real_illo, training=True)
 
             # Discriminator output
-            disc_real_x = self.disc_X(real_x, training=True)
-            disc_fake_x = self.disc_X(fake_x, training=True)
+            disc_real_x = self.d1(real_photo, training=True)
+            disc_fake_x = self.d1(fake_x, training=True)
 
-            disc_real_y = self.disc_Y(real_y, training=True)
-            disc_fake_y = self.disc_Y(fake_y, training=True)
+            disc_real_y = self.d2(real_illo, training=True)
+            disc_fake_y = self.d2(fake_y, training=True)
 
             # Generator adverserial loss
             gen_G_loss = self.generator_loss_fn(disc_fake_y)
             gen_F_loss = self.generator_loss_fn(disc_fake_x)
 
             # Generator cycle loss
-            cycle_loss_G = self.cycle_loss_fn(real_y, cycled_y) * self.lambda_cycle
-            cycle_loss_F = self.cycle_loss_fn(real_x, cycled_x) * self.lambda_cycle
+            cycle_loss_G = self.cycle_loss_fn(real_illo, cycled_y) * self.lambda_cycle
+            cycle_loss_F = self.cycle_loss_fn(real_photo, cycled_x) * self.lambda_cycle
 
             # Generator identity loss
             id_loss_G = (
-                self.identity_loss_fn(real_y, same_y)
+                self.identity_loss_fn(real_illo, same_y)
                 * self.lambda_cycle
                 * self.lambda_identity
             )
             id_loss_F = (
-                self.identity_loss_fn(real_x, same_x)
+                self.identity_loss_fn(real_photo, same_x)
                 * self.lambda_cycle
                 * self.lambda_identity
             )
@@ -295,27 +295,27 @@ class Ganilla(keras.Model):
             disc_Y_loss = self.discriminator_loss_fn(disc_real_y, disc_fake_y)
 
         # Get the gradients for the generators
-        grads_G = tape.gradient(total_loss_G, self.gen_G.trainable_variables)
-        grads_F = tape.gradient(total_loss_F, self.gen_F.trainable_variables)
+        grads_G = tape.gradient(total_loss_G, self.g1.trainable_variables)
+        grads_F = tape.gradient(total_loss_F, self.g2.trainable_variables)
 
         # Get the gradients for the discriminators
-        disc_X_grads = tape.gradient(disc_X_loss, self.disc_X.trainable_variables)
-        disc_Y_grads = tape.gradient(disc_Y_loss, self.disc_Y.trainable_variables)
+        disc_X_grads = tape.gradient(disc_X_loss, self.d1.trainable_variables)
+        disc_Y_grads = tape.gradient(disc_Y_loss, self.d2.trainable_variables)
 
         # Update the weights of the generators
         self.gen_G_optimizer.apply_gradients(
-            zip(grads_G, self.gen_G.trainable_variables)
+            zip(grads_G, self.g1.trainable_variables)
         )
         self.gen_F_optimizer.apply_gradients(
-            zip(grads_F, self.gen_F.trainable_variables)
+            zip(grads_F, self.g2.trainable_variables)
         )
 
         # Update the weights of the discriminators
         self.disc_X_optimizer.apply_gradients(
-            zip(disc_X_grads, self.disc_X.trainable_variables)
+            zip(disc_X_grads, self.d1.trainable_variables)
         )
         self.disc_Y_optimizer.apply_gradients(
-            zip(disc_Y_grads, self.disc_Y.trainable_variables)
+            zip(disc_Y_grads, self.d2.trainable_variables)
         )
 
         return {

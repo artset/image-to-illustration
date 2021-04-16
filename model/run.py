@@ -180,7 +180,7 @@ def main():
     )
 
     ganilla.fit(
-        tf.data.Dataset.zip((illo_data.train_data, photo_data.train_data)),
+        tf.data.Dataset.zip((photo_data.train_data, illo_data.train_data)),
         epochs=1,
     )
 
