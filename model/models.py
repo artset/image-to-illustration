@@ -56,8 +56,7 @@ class Ganilla(tf.keras.Model):
         """
         return self.lambda_identity * self.lambda_cycle * self.id_loss(real, cycled)
 
-
-    def train_step(input_data):
+    def train_step(self, input_data):
         """
         input_data || tuple
         Ideally this should be something that looks like (photos, illustration), aka (source, target)
