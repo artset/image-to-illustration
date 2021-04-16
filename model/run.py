@@ -74,24 +74,24 @@ def parse_args():
     return parser.parse_args()
 
 
-def train(model, datasets, checkpoint_path, logs_path, init_epoch):
+def train(model, checkpoint_path, logs_path, init_epoch):
     """ Training routine. """
 
     # Keras callbacks for training
-    callback_list = [
-        tf.keras.callbacks.TensorBoard(
-            log_dir=logs_path,
-            update_freq='batch',
-            profile_batch=0),
-        # ImageLabelingLogger(logs_path, datasets),
-        CustomModelSaver(checkpoint_path, hp.max_num_weights)
-    ]
+    # callback_list = [
+    #     tf.keras.callbacks.TensorBoard(
+    #         log_dir=logs_path,
+    #         update_freq='batch',
+    #         profile_batch=0),
+    #     # ImageLabelingLogger(logs_path, datasets),
+    #     CustomModelSaver(checkpoint_path, hp.max_num_weights)
+    # ]
 
     # Include confusion logger in callbacks if flag set
-    if ARGS.confusion:
-        callback_list.append(ConfusionMatrixLogger(logs_path, datasets))
+    # if ARGS.confusion:
+    #     callback_list.append(ConfusionMatrixLogger(logs_path, datasets))
 
-    train_data = np.zeros((5, 256, 256))
+    train_data = np.zeros((1, 256, 256, 3))
     # Begin training
     model.fit(
         x = train_data,
@@ -99,7 +99,7 @@ def train(model, datasets, checkpoint_path, logs_path, init_epoch):
         # validation_data=datasets.test_data,
         epochs=hp.num_epochs,
         batch_size=None,
-        callbacks=callback_list,
+        # callbacks=callback_list,
         initial_epoch=init_epoch,
     )
     model.summary()
@@ -156,7 +156,6 @@ def main():
     # Run script from location of run.py
     os.chdir(sys.path[0])
 
-    # datasets = Datasets(ARGS.data)
     illo_data = Dataset("../data/train/illustration", "../data/test/illustration")
     photo_data = Dataset("../data/train/landscape", "../data/test/landscape")
 
@@ -223,7 +222,7 @@ def main():
     #     path = ARGS.data + os.sep + ARGS.lime_image
     #     LIME_explainer(model, path, datasets.preprocess_fn)
     # else:
-    train(model, datasets, checkpoint_path, logs_path, init_epoch)
+    train(model, checkpoint_path, logs_path, init_epoch)
     
 
 

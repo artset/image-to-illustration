@@ -176,6 +176,7 @@ class Ganilla(tf.keras.Model):
         ## TODO: save as images in a directory we want.
         return process_output(generated)
 
+
 """
 The Generator model, containing modified RESNET blocks.
 """
@@ -197,9 +198,13 @@ class Generator(tf.keras.Model):
 
         self.pre_upsample = [
             # Not sure about filters, strides, padding, or output padding here
-            Conv2DTranspose(filters=512, kernel_size=(1,1), strides=2, padding="same", output_padding=1)
+            Conv2DTranspose(filters=512, kernel_size=(1,1), padding="same")
         ]
 
+        self.pre_upsample_simple = [
+            # Not sure about filters, strides, padding, or output padding here
+            Conv2DTranspose(filters=256, kernel_size=(1,1), padding="same")
+        ]
 
         self.post_upsample = [
             # Not sure about stride, padding, or output padding here
@@ -251,9 +256,8 @@ class Generator(tf.keras.Model):
             x = layer(x)
 
         #TODO: a guess for the 4 downsampling blocks: call resnet on on 64, 128, 256 , 512
-        # Original code seems do downsample twice -- currently upsampling and downsampling twice to match the diagram on page 5
+        # Original code seems do downsample twice -- currently upsampling and downsampling four times to match the diagram on page 5
         # Saving intermediate outputs for use in the upsampling skip connections
-
         layer_1a_out = self.resnet(x, 64, "layer_1_a")
         #print("lay_1_a: ", layer_1a_out.shape)
         layer_1b_out = self.resnet(layer_1a_out, 64, "layer_b")
@@ -276,7 +280,6 @@ class Generator(tf.keras.Model):
             #print(x.shape)
 
         # Original code seems to upsample twice 
-
         x = self.upsample(x, layer_3b_out, 512)
         #print("up1: ", x.shape)
         x = self.upsample(x, layer_2b_out, 256)
@@ -290,7 +293,6 @@ class Generator(tf.keras.Model):
         
         for layer in self.post_upsample:
             x = layer(x)
-
             #print("post: ", x.shape)
         return x
 
@@ -302,7 +304,6 @@ class Generator(tf.keras.Model):
         # the "real" labels to perform BCE on
         truth_real = tf.ones_like(disc_real_output)
         return bce(truth_real, disc_real_output)
-
 
     def upsample(self,inputs, skipinputs, filter_size):
         """Returns output of upsampling chunk with addition of skip connection layer"""
@@ -334,7 +335,6 @@ class Generator(tf.keras.Model):
         GAMMA_INIT = tf.keras.initializers.RandomNormal(mean=0.0, stddev=0.02)
 
         KERNEL_SIZE = 3
-
         if lay_type == "layer_1_a" or lay_type == "layer_b": 
             mod_resnet = [
                 Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(1,1), padding="same", 
@@ -362,7 +362,6 @@ class Generator(tf.keras.Model):
         for layer in mod_resnet:
             output = layer(output)
 
-
         size_mod = Conv2D(filters=filter_size, kernel_size=3, strides=(2,2), padding="same", activation="relu", kernel_initializer=KERNEL_INIT)
         
         if lay_type == "layer_2_a": 
@@ -375,7 +374,7 @@ class Generator(tf.keras.Model):
         ]
         result = final_layer[0](result)
 
-        return output
+        return result
 
         #TODO: NEED TO combine final_layer with above architecture
         # Vanilla RESNET18 Model from the paper here for reference.
