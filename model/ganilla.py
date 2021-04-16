@@ -18,6 +18,8 @@ from tensorflow.keras.losses import MeanAbsoluteError
 
 import hyperparameters as hp
 
+
+# Need this for now -- do not change
 class ReflectionPadding2D(layers.Layer):
     """Implements Reflection Padding as a layer.
 
@@ -156,10 +158,6 @@ class Discriminator(tf.keras.Model):
         # Gamma initializer for instance normalization.
         GAMMA_INIT = tf.keras.initializers.RandomNormal(mean=0.0, stddev=0.02)
 
-        # Weird thing from the colab that I'll just leave here:
-        #          img_input = layers.Input(shape=input_img_size, name=name + "_img_input")
-        # ^ I believe this just instantiates the input as a tensor - KS
-
         self.architecture = [
             # kernel_initializer 
             Conv2D(filters=64, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block1_conv1"),
@@ -202,8 +200,6 @@ gen_F = Generator("F")
 disc_X = Discriminator(name="X")
 disc_Y = Discriminator(name="Y")
 
-
-
 class Ganilla(keras.Model):
     def __init__(
         self,
@@ -245,19 +241,9 @@ class Ganilla(keras.Model):
         real_photo, real_illo = data
 
         with tf.GradientTape(persistent=True) as tape:
-            # Horse to fake zebra
+            # Generate images
             fake_y = self.g1(real_photo, training=True)
-            # Zebra to fake horse -> y2x
             fake_x = self.g2(real_illo, training=True)
-
-            # Cycle (Horse to fake zebra to fake horse): x -> y -> x
-            cycled_x = self.g2(fake_y, training=True)
-            # Cycle (Zebra to fake horse to fake zebra) y -> x -> y
-            cycled_y = self.g1(fake_x, training=True)
-
-            # Identity mapping
-            same_x = self.g2(real_photo, training=True)
-            same_y = self.g1(real_illo, training=True)
 
             # Discriminator output
             disc_real_x = self.d1(real_photo, training=True)
@@ -271,10 +257,14 @@ class Ganilla(keras.Model):
             gen_F_loss = self.generator_loss_fn(disc_fake_x)
 
             # Generator cycle loss
+            cycled_x = self.g2(fake_y, training=True)
+            cycled_y = self.g1(fake_x, training=True)
             cycle_loss_G = self.cycle_loss_fn(real_illo, cycled_y) * self.lambda_cycle
             cycle_loss_F = self.cycle_loss_fn(real_photo, cycled_x) * self.lambda_cycle
 
             # Generator identity loss
+            same_x = self.g2(real_photo, training=True)
+            same_y = self.g1(real_illo, training=True)
             id_loss_G = (
                 self.identity_loss_fn(real_illo, same_y)
                 * self.lambda_cycle
