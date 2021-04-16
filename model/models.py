@@ -283,7 +283,7 @@ class Generator(tf.keras.Model):
         x += y
         return x
     
-    def resnet(inputs, filter_size, lay_type):
+    def resnet(self, inputs, filter_size, lay_type):
         """ Returns the output of a single resnet block """
         #TODO: Not sure if for each resnet block, the filter size decreases so I have it as a variable rn incase it halves.
         # RESNET18 does that but TBH the architecture is a little different from what I see in the paper.
@@ -305,7 +305,7 @@ class Generator(tf.keras.Model):
                     kernel_initializer=KERNEL_INIT, name="conv1"),
                 InstanceNormalization(gamma_initializer=GAMMA_INIT),
                 ReLU(), 
-                MaxPool2d(strides=2),
+                MaxPool2D(strides=2),
                 Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(1,1), padding="same", 
                     kernel_initializer=KERNEL_INIT, name="conv2"),
                 InstanceNormalization(gamma_initializer=GAMMA_INIT),
@@ -316,7 +316,7 @@ class Generator(tf.keras.Model):
                     kernel_initializer=KERNEL_INIT, name="conv1"),
                 InstanceNormalization(gamma_initializer=GAMMA_INIT),
                 ReLU(), 
-                MaxPool2d(strides=2),
+                MaxPool2D(strides=2),
                 Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(1,1), padding="same", 
                     kernel_initializer=KERNEL_INIT, name="conv2"),
                 InstanceNormalization(gamma_initializer=GAMMA_INIT),
@@ -326,7 +326,7 @@ class Generator(tf.keras.Model):
         for layer in mod_resnet:
             output = layer(output)
 
-        size_mod = Conv2D(filters=filter_size, kernel_size=3, stride=(1,1), padding="same", activation="relu", kernel_initializer=KERNEL_INIT)
+        size_mod = Conv2D(filters=filter_size, kernel_size=3, strides=(1,1), padding="same", activation="relu", kernel_initializer=KERNEL_INIT)
         
         if lay_type == "layer_2_a": 
             inputs = size_mod(inputs)
@@ -334,7 +334,7 @@ class Generator(tf.keras.Model):
         result = Concatenate()([output, inputs]) # "Skip concatenation" mentioned in paper, not sure if correctly implemented
 
         final_layer = [
-            Conv2D(filters=filter_size, kernel_size=3, stride=(1,1), padding="same", activation="relu", kernel_initializer=KERNEL_INIT)
+            Conv2D(filters=filter_size, kernel_size=3, strides=(1,1), padding="same", activation="relu", kernel_initializer=KERNEL_INIT)
         ]
         result = final_layer[0](result)
 
@@ -345,7 +345,7 @@ class Generator(tf.keras.Model):
         # vanilla_resnet = [
         #     Conv2D(filters=64, kernel_size=7, strides=(2,2), padding="same", 
         #         kernel_initializer="random_normal", activation = "relu", name="conv1"),
-        #     MaxPool2D(3, stride=2),
+        #     MaxPool2D(3, strides=2),
             
         #     Conv2D(filters=64, kernel_size=3, strides=(2,2), padding="same", 
         #         kernel_initializer="random_normal", activation = "relu", name="conv2_x"),

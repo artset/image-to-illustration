@@ -12,7 +12,7 @@ from datetime import datetime
 import tensorflow as tf
 
 import hyperparameters as hp
-from models import Ganilla
+from models import Ganilla, Generator
 from preprocess import Datasets
 from skimage.transform import resize
 from tensorboard_utils import  CustomModelSaver
@@ -139,8 +139,8 @@ def main():
 
     datasets = Datasets(ARGS.data)
 
-    model = Ganilla()
-    # model(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
+    model = Generator()
+    model(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
     checkpoint_path = "checkpoints" + os.sep + \
         "ganilla" + os.sep + timestamp + os.sep
     logs_path = "logs" + os.sep + "ganilla" + \
