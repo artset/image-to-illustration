@@ -10,9 +10,11 @@ import argparse
 import re
 from datetime import datetime
 import tensorflow as tf
+from tensorflow import keras
 
 import hyperparameters as hp
 from models import Ganilla
+from tutorial import GAN, discriminator, generator, latent_dim
 from preprocess import Datasets
 from skimage.transform import resize
 from tensorboard_utils import  CustomModelSaver
@@ -67,35 +69,35 @@ def parse_args():
     return parser.parse_args()
 
 
-def train(model, datasets, checkpoint_path, logs_path, init_epoch):
-    """ Training routine. """
+# def train(model, datasets, checkpoint_path, logs_path, init_epoch):
+#     """ Training routine. """
 
-    # Keras callbacks for training
-    callback_list = [
-        tf.keras.callbacks.TensorBoard(
-            log_dir=logs_path,
-            update_freq='batch',
-            profile_batch=0),
-        # ImageLabelingLogger(logs_path, datasets),
-        CustomModelSaver(checkpoint_path, hp.max_num_weights)
-    ]
+#     # Keras callbacks for training
+#     callback_list = [
+#         tf.keras.callbacks.TensorBoard(
+#             log_dir=logs_path,
+#             update_freq='batch',
+#             profile_batch=0),
+#         # ImageLabelingLogger(logs_path, datasets),
+#         CustomModelSaver(checkpoint_path, hp.max_num_weights)
+#     ]
 
-    # Include confusion logger in callbacks if flag set
-    if ARGS.confusion:
-        callback_list.append(ConfusionMatrixLogger(logs_path, datasets))
+#     # Include confusion logger in callbacks if flag set
+#     if ARGS.confusion:
+#         callback_list.append(ConfusionMatrixLogger(logs_path, datasets))
 
-    train_data = np.zeros((5, 256, 256))
-    # Begin training
-    model.fit(
-        x = train_data,
-        # x=datasets.train_data,
-        # validation_data=datasets.test_data,
-        epochs=hp.num_epochs,
-        batch_size=None,
-        callbacks=callback_list,
-        initial_epoch=init_epoch,
-    )
-    model.summary()
+#     train_data = np.zeros((5, 256, 256))
+#     # Begin training
+#     model.fit(
+#         x = train_data,
+#         # x=datasets.train_data,
+#         # validation_data=datasets.test_data,
+#         epochs=hp.num_epochs,
+#         batch_size=None,
+#         callbacks=callback_list,
+#         initial_epoch=init_epoch,
+#     )
+#     model.summary()
 
 
 # def test(model, test_data):
@@ -147,6 +149,25 @@ def main():
         os.sep + timestamp + os.sep
 
     # Print summary of model
+
+    batch_size = 64
+    (x_train, _), (x_test, _) = keras.datasets.mnist.load_data()
+    all_digits = np.concatenate([x_train, x_test])
+    all_digits = all_digits.astype("float32") / 255.0
+    all_digits = np.reshape(all_digits, (-1, 28, 28, 1))
+    dataset = tf.data.Dataset.from_tensor_slices(all_digits)
+    dataset = dataset.shuffle(buffer_size=1024).batch(batch_size)
+
+    gan = GAN(discriminator=discriminator, generator=generator, latent_dim=latent_dim)
+    gan.compile(
+        d_optimizer=keras.optimizers.Adam(learning_rate=0.0003),
+        g_optimizer=keras.optimizers.Adam(learning_rate=0.0003),
+        loss_fn=keras.losses.BinaryCrossentropy(from_logits=True),
+    )
+
+    # To limit the execution time, we only train on 100 batches. You can train on
+    # the entire dataset. You will need about 20 epochs to get nice results.
+    gan.fit(dataset.take(100), epochs=1)
     
    
     # # Load checkpoints
