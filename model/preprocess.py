@@ -60,3 +60,20 @@ class Dataset():
 
         return data
 
+
+
+## to save images in in main
+
+
+    # list_data = list(illo_data.train_data.as_numpy_iterator())
+    # print(list_data)
+    # print("length of data", len(list_data))
+    # count = 1
+    # for d in list_data:
+    #     print("d", d, d.shape)
+    #     print("d0", d[0].shape)
+    #     # im =  Image.fromarray(d[0])
+    #     plt.imshow(d[0])
+    #     plt.savefig("figure" + str(count))
+    #     count += 1
+        # break
