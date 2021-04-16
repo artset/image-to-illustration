@@ -17,10 +17,15 @@ class Ganilla(tf.keras.Model):
         super(Ganilla, self).__init__()
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=hp.learning_rate)
 
-        self.g1 = Generator(name="toIllo")
-        self.g2 = Generator(name="toPhoto")
-        self.d1 = Discriminator("isIllo")
-        self.d2 = Discriminator("isPhoto")
+        self.gen_G = Generator(name="toIllo")
+        self.gen_F = Generator(name="toPhoto")
+        self.disc_X = Discriminator("isPhoto")
+        self.disc_Y = Discriminator("isIllo")
+
+        # self.g1 = Generator(name="toIllo")
+        # self.g2 = Generator(name="toPhoto")
+        # self.d1 = Discriminator("isIllo")
+        # self.d2 = Discriminator("isPhoto")
         self.lambda_cycle = 10.0
         self.lambda_identity = 0.5
 
@@ -92,71 +97,69 @@ class Ganilla(tf.keras.Model):
         seems like a valid approach.
         -KS
         """
-        photos, illos = input_data
-        print("photos shape", photos.shape)
+        # x = photos
+        # y = illos
+        real_x, real_y = input_data
+
         # Need persistent to compute multiple gradients in the same computation as mentioned in the tf docs.
         with tf.GradientTape(persistent=True) as tape:
+            
             # Call Generators
-            fake_illos = self.g1(photos)
-            fake_photos = self.g2(illos)
+            fake_y = self.gen_G(real_x, training=True)
+            fake_x = self.gen_F(real_y, training=True)
 
-            print("fake_y", fake_photos.shape)
-            print("fake_x", fake_illos.shape)
+
+            cycled_x = self.gen_F(fake_y, training=True)
+            cycled_y = self.gen_G(fake_x, training=True)
+
+            same_x = self.gen_F(real_x, training=True)
+            same_y = self.gen_G(real_y, training=True)
+
 
             # Call Discriminators
-            disc_fake_illos = self.d1(fake_illos)
-            disc_real_illos = self.d1(illos)
-            disc_fake_photos = self.d2(fake_photos)
-            disc_real_photos = self.d2(photos)
-            print("disc_real_x", disc_real_illos.shape)
-            print("disc_real_y", disc_real_photos.shape)
-            print("disc_fake_x", disc_fake_illos.shape)
-            print("disc_fake_y", disc_fake_photos.shape)
-            print("disc real x", disc_real_illos)
+            disc_real_x = self.disc_X(real_x, training=True)
+            disc_fake_x = self.disc_X(fake_x, training=True)
+            
+            disc_real_y = self.disc_Y(real_y, training=True)
+            disc_fake_y = self.disc_Y(fake_y, training=True)
+            
             # Adversarial loss
-            ad_illos_loss = self.g1.loss_fn(disc_fake_illos)
-            ad_photos_loss = self.g2.loss_fn(disc_fake_photos)
-            print("g1 loss", self.g1.loss_fn)
-            print("ad illo loss", ad_illos_loss)
+            gen_G_loss = self.gen_G.loss_fn(disc_fake_y)
+            gen_F_loss = self.gen_F.loss_fn(disc_fake_x)
 
-            # Discriminator Loss
-            disc_illos_loss = self.d1.loss_fn(disc_fake_illos, disc_real_illos)
-            disc_photos_loss = self.d2.loss_fn(disc_fake_photos, disc_real_photos)
+            cycle_loss_G = self.cycle_loss(real_y, cycled_y) # generator 1 loss
+            cycle_loss_F = self.cycle_loss(real_x, cycled_x)  # generator 2 loss
 
-            # Compute cyclic loss
-            cycle_photos = self.g2(fake_illos)
-            cycle_illos = self.g1(fake_photos)
-            cycle_photos_loss = self.cycle_loss(photos, cycle_photos)
-            cycle_illos_loss = self.cycle_loss(illos, cycle_illos)
-
-            # Compute identity losses
-            same_illos = self.g1(illos)
-            same_photos = self.g2(photos)
-            id_photos_loss = self.identity_loss(photos, same_photos)
-            id_illos_loss = self.identity_loss(illos, same_illos)
+            id_loss_G = self.identity_loss(real_y, same_y) #generator 1
+            id_loss_F = self.identity_loss(real_x, same_x) #generator 2
 
             # Generator loss: adversarial + cylic + identity
-            gen_illos_loss = ad_illos_loss + cycle_illos_loss + id_illos_loss
-            gen_photos_loss = ad_photos_loss + cycle_photos_loss + id_photos_loss
+            total_loss_G = gen_G_loss + cycle_loss_G + id_loss_G # generator 1
+            total_loss_F = gen_F_loss + cycle_loss_F + id_loss_F #generator 2
+
+            # Discriminator Loss
+            disc_X_loss = self.disc_X.loss_fn(disc_real_x, disc_fake_x) # disc x
+            disc_Y_loss = self.disc_Y.loss_fn(disc_real_y, disc_fake_y) # disc y 
 
         # Compute gradients for generators and discriminators
-        grads_g1 = tape.gradient(gen_illos_loss, self.g1.trainable_variables)
-        grads_g2 = tape.gradient(gen_photos_loss, self.g2.trainable_variables)
-        grads_d1 = tape.gradient(disc_illos_loss, self.d1.trainable_variables)
-        grads_d2 = tape.gradient(disc_photos_loss, self.d2.trainable_variables)
+        grads_G = tape.gradient(total_loss_G, self.gen_G.trainable_variables)
+        grads_F = tape.gradient(total_loss_F, self.gen_F.trainable_variables)
+        
+        disc_X_grads = tape.gradient(disc_X_loss, self.disc_X.trainable_variables)
+        disc_Y_grads = tape.gradient(disc_Y_loss, self.disc_Y.trainable_variables)
 
         # Apply gradients to generators and discriminators
-        self.g1.optimizer.apply_gradients(zip(grads_g1, self.g1.trainable_variables))
-        self.g2.optimizer.apply_gradients(zip(grads_g2, self.g2.trainable_variables))
-        self.d1.optimizer.apply_gradients(zip(grads_d1, self.d1.trainable_variables))
-        self.d2.optimizer.apply_gradients(zip(grads_d2, self.d2.trainable_variables))
+        self.gen_G.optimizer.apply_gradients(zip(grads_G, self.gen_G.trainable_variables))
+        self.gen_F.optimizer.apply_gradients(zip(grads_F, self.gen_F.trainable_variables))
+        self.disc_X.optimizer.apply_gradients(zip(disc_X_grads, self.disc_X.trainable_variables))
+        self.disc_Y.optimizer.apply_gradients(zip(disc_Y_grads, self.disc_Y.trainable_variables))
 
         # Return a dict mapping metric names to current value required by tf docs
         return {
-            "gen_illos_loss": gen_illos_loss,
-            "gen_photos_loss": gen_photos_loss,
-            "disc_illos_loss": disc_illos_loss,
-            "disc_photos_loss": disc_photos_loss,
+            "G_loss": total_loss_G,
+            "F_loss": total_loss_F,
+            "D_X_loss": disc_X_loss,
+            "D_Y_loss": disc_Y_loss,
         }
 
     @staticmethod
@@ -492,7 +495,7 @@ class Discriminator(tf.keras.Model):
         return x
 
     @staticmethod
-    def loss_fn(disc_fake_output, disc_real_output):
+    def loss_fn(disc_real_output, disc_fake_output):
         """ Loss function for model. """
         bce = tf.keras.losses.BinaryCrossentropy()
 

@@ -18,7 +18,8 @@ import matplotlib as mpl
 import hyperparameters as hp
 
 from preprocess import Dataset
-from models import Ganilla, Generator
+# from models import Ganilla, Generator
+from ganilla import Ganilla, gen_G, gen_F, disc_X, disc_Y
 
 from skimage.transform import resize
 from tensorboard_utils import  CustomModelSaver
@@ -111,6 +112,23 @@ def train(model, checkpoint_path, logs_path, init_epoch):
 #     )
 
 
+# Loss function for evaluating adversarial loss
+adv_loss_fn = keras.losses.MeanSquaredError()
+
+# Define the loss function for the generators
+def generator_loss_fn(fake):
+    fake_loss = adv_loss_fn(tf.ones_like(fake), fake)
+    return fake_loss
+
+
+# Define the loss function for the discriminators
+def discriminator_loss_fn(real, fake):
+    real_loss = adv_loss_fn(tf.ones_like(real), real)
+    fake_loss = adv_loss_fn(tf.zeros_like(fake), fake)
+    return (real_loss + fake_loss) * 0.5
+
+
+
 def main():
     """ Main function. """
 
@@ -142,25 +160,37 @@ def main():
     illo_data = Dataset("../data/train/illustration", "../data/test/illustration")
     photo_data = Dataset("../data/train/landscape", "../data/test/landscape")
 
+    ganilla = Ganilla(
+        generator_G=gen_G, generator_F=gen_F, discriminator_X=disc_X, discriminator_Y=disc_Y
+    )
 
-    # Create GANILLA model
-    ganilla = Ganilla()
-
-    # # Compile the model
+    # Compile the model
     ganilla.compile(
-        # gen1_optimizer=ganilla.g1.optimizer,
-        # gen2_optimizer=ganilla.g2.optimizer,
-        # disc1_optimizer=ganilla.d1.optimizer,
-        # disc2_optimizer=ganilla.d2.optimizer,
-        # gen1_loss_fn=ganilla.g1.loss_fn,
-        # disc2_loss_fn=ganilla.d1.loss_fn,
-        # metrics=["gen_illos_loss", "gen_photos_loss", "disc_illos_loss", "disc_photos_loss"]
+        gen_G_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
+        gen_F_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
+        disc_X_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
+        disc_Y_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
+        gen_loss_fn=generator_loss_fn,
+        disc_loss_fn=discriminator_loss_fn,
     )
 
     ganilla.fit(
-        tf.data.Dataset.zip((photo_data.train_data, illo_data.train_data)),
-        epochs=1
+        tf.data.Dataset.zip((illo_data.train_data, photo_data.train_data)),
+        epochs=1,
     )
+
+
+    # # Create GANILLA model
+    # ganilla = Ganilla()
+
+    # # # Compile the model
+    # ganilla.compile(
+    # )
+
+    # ganilla.fit(
+    #     tf.data.Dataset.zip((photo_data.train_data, illo_data.train_data)),
+    #     epochs=1
+    # )
 
     # model = Ganilla()
     # # model(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))

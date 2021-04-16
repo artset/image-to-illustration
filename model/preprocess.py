@@ -49,7 +49,6 @@ class Dataset():
         # Random crop to 256X256
         other_img = tf.image.random_crop(img, size=[*input_img_size])
         img = tf.image.random_crop(img, size=[*input_img_size])
-        print(img.shape)
         # Normalize the pixel values in the range 0-1
         img = self.normalize_img(img)
         other_img = self.normalize_img(other_img)
@@ -62,8 +61,6 @@ class Dataset():
         data = data.flat_map(self.flatten)
         data = data.shuffle(10000)
         data = data.batch(hp.batch_size)
-        print(type(data))
-
         return data
 
 ## to save images in in main
