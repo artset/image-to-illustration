@@ -27,20 +27,6 @@ class Ganilla(tf.keras.Model):
         self.cy_loss = MeanAbsoluteError()
         self.id_loss = MeanAbsoluteError()
 
-
-    # def call(self, input_data):
-    #     photo, illo = input_data
-
-    #     fake_illo = self.g1(photo)
-    #     disc_illo_fake = self.d1(illo)
-    #     disc_illo_real = self.d1(fake_illo)
-
-
-    #     res = self.g2(res)
-    #     disc_ill_photo = self.d2(fake_illo)
-    #     disc_photo_real = self.d2(fake_illo)
-    #     return fake_illo
-
     def compile(
         self,
         gen1_optimizer,
@@ -57,8 +43,8 @@ class Ganilla(tf.keras.Model):
         self.disc2_optimizer = disc2_optimizer
         self.generator_loss_fn = gen1_loss_fn
         self.discriminator_loss_fn = disc2_loss_fn
-        self.cy_loss = keras.losses.MeanAbsoluteError()
-        self.id_loss = keras.losses.MeanAbsoluteError()
+        self.cy_loss = tf.keras.losses.MeanAbsoluteError()
+        self.id_loss = tf.keras.losses.MeanAbsoluteError()
 
 
     @staticmethod
@@ -85,7 +71,7 @@ class Ganilla(tf.keras.Model):
         return self.lambda_identity * self.lambda_cycle * self.id_loss(real, cycled)
 
     @tf.function
-    def train_step(input_data):
+    def train_step(self, input_data):
         """
         input_data || tuple
         Ideally this should be something that looks like (photos, illustration), aka (source, target)
@@ -101,7 +87,7 @@ class Ganilla(tf.keras.Model):
         seems like a valid approach.
         -KS
         """
-        photo, illo = input_data
+        photos, illos = input_data
         # Need persistent to compute multiple gradients in the same computation as mentioned in the tf docs.
         with tf.GradientTape(persistent=True) as tape:
             # Call Generators
@@ -224,31 +210,31 @@ class Generator(tf.keras.Model):
         """ Passes the image through the network. """
         # TODO: the TAN BLOCKS between skip connections appear to be conv layers needed to properly resize things so that they can be concatenated or summed togehter!!!!
         # Need to add this to the resnet structure overal ^^
-        # for layer in self.block1:
-        #     x = layer(x)
+        for layer in self.block1:
+            x = layer(x)
 
-        # #TODO: a guess for the 4 downsampling blocks: call resnet on on 64, 128, 256 , 512
-        # # Original code seems do downsample twice -- currently upsampling and downsampling twice to match the diagram on page 5
-        # # Saving intermediate outputs for use in the upsampling skip connections
-        # layer_1_out = self.resnet(x, 64)
-        # layer_2_out = self.resnet(layer_1_out, 128)
-        # layer_3_out = self.resnet(layer_2_out, 256)
-        # x = self.resnet(layer_3_out, 512)
+        #TODO: a guess for the 4 downsampling blocks: call resnet on on 64, 128, 256 , 512
+        # Original code seems do downsample twice -- currently upsampling and downsampling twice to match the diagram on page 5
+        # Saving intermediate outputs for use in the upsampling skip connections
+        layer_1_out = self.resnet(x, 64)
+        layer_2_out = self.resnet(layer_1_out, 128)
+        layer_3_out = self.resnet(layer_2_out, 256)
+        x = self.resnet(layer_3_out, 512)
 
-        # for layer in self.pre_upsample:
-        #     x = layer(x)
+        for layer in self.pre_upsample:
+            x = layer(x)
 
-        # # Original code seems to upsample twice 
-        # x = self.upsample(x, layer_3_out)
-        # x = self.upsample(x, layer_2_out)
-        # x = self.upsample(x, layer_1_out)
-        # # Not sure about the size
-        # tf.image.resize(image, size=[5,7], method="nearest")
+        # Original code seems to upsample twice 
+        x = self.upsample(x, layer_3_out)
+        x = self.upsample(x, layer_2_out)
+        x = self.upsample(x, layer_1_out)
+        # Not sure about the size
+        tf.image.resize(image, size=[5,7], method="nearest")
         
-        # for layer in self.post_upsample(x):
-        #     x = layer(x)
+        for layer in self.post_upsample(x):
+            x = layer(x)
 
-        x = Dense(100)(x)
+        # x = Dense(100)(x)
         return x
 
     @staticmethod
@@ -370,7 +356,7 @@ class Discriminator(tf.keras.Model):
 
         self.architecture = [
             # kernel_initializer 
-            Conv2D(filters=64, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block1_conv2"),
+            Conv2D(filters=64, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="poopyfartface"),
             LeakyReLU(RELU),
 
             Conv2D(filters=128, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block2_conv1"),
@@ -387,7 +373,6 @@ class Discriminator(tf.keras.Model):
 
             Conv2D(filters=1, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=1, padding="same", activation="sigmoid", name="block4_conv1")
         ]
-
         # Conv1:  in: 64, out:128
         # batchnorm 2d 128
         # leaky relu
@@ -407,7 +392,7 @@ class Discriminator(tf.keras.Model):
 
     def call(self, x):
         for layer in self.architecture:
-            x = architecture(x)
+            x = layer(x)
         return x
 
     @staticmethod

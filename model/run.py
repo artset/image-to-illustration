@@ -16,7 +16,7 @@ from PIL import Image
 import matplotlib as mpl
 
 import hyperparameters as hp
-from models import CycleGan, gen_F, gen_G, disc_X, disc_Y
+from models import Ganilla
 from preprocess import Dataset
 from skimage.transform import resize
 from tensorboard_utils import  CustomModelSaver
@@ -161,9 +161,7 @@ def main():
 
 
     # Create GANILLA model
-    ganilla = Ganilla(
-        generator_G=gen_G, generator_F=gen_F, discriminator_X=disc_X, discriminator_Y=disc_Y
-    )
+    ganilla = Ganilla()
 
     # # Compile the model
     ganilla.compile(
