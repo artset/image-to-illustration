@@ -84,7 +84,7 @@ def train(model, datasets, checkpoint_path, logs_path, init_epoch):
     if ARGS.confusion:
         callback_list.append(ConfusionMatrixLogger(logs_path, datasets))
 
-    train_data = np.zeros((5, 256, 256))
+    train_data = np.zeros((5, 256, 256, 3))
     # Begin training
     model.fit(
         x = train_data,
