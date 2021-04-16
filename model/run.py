@@ -13,9 +13,8 @@ import tensorflow as tf
 from tensorflow import keras
 
 import hyperparameters as hp
-from models import Ganilla
-from tutorial import GAN, discriminator, generator, latent_dim
-from preprocess import Datasets
+from models import CycleGan, gen_F, gen_G, disc_X, disc_Y
+from preprocess import Dataset
 from skimage.transform import resize
 from tensorboard_utils import  CustomModelSaver
 
@@ -23,6 +22,7 @@ from skimage.io import imread
 from skimage.segmentation import mark_boundaries
 from matplotlib import pyplot as plt
 import numpy as np
+
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -108,7 +108,19 @@ def parse_args():
 #         x=test_data,
 #         verbose=1,
 #     )
+# Loss function for evaluating adversarial loss
+adv_loss_fn = keras.losses.MeanSquaredError()
 
+def generator_loss_fn(fake):
+    fake_loss = adv_loss_fn(tf.ones_like(fake), fake)
+    return fake_loss
+
+
+# Define the loss function for the discriminators
+def discriminator_loss_fn(real, fake):
+    real_loss = adv_loss_fn(tf.ones_like(real), real)
+    fake_loss = adv_loss_fn(tf.zeros_like(fake), fake)
+    return (real_loss + fake_loss) * 0.5
 
 
 def main():
@@ -139,41 +151,41 @@ def main():
     # Run script from location of run.py
     os.chdir(sys.path[0])
 
-    datasets = Datasets(ARGS.data)
+    # datasets = Datasets(ARGS.data)
 
-    model = Ganilla()
-    # model(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
-    checkpoint_path = "checkpoints" + os.sep + \
-        "ganilla" + os.sep + timestamp + os.sep
-    logs_path = "logs" + os.sep + "ganilla" + \
-        os.sep + timestamp + os.sep
+    illo_data = Dataset("../data/train/illustration", "../data/test/illustration")
+    photo_data = Dataset("../data/train/landscape", "../data/test/landscape")
 
-    # Print summary of model
 
-    batch_size = 64
-    # (x_train, _), (x_test, _) = keras.datasets.mnist.load_data()
 
-    # print("x train shape", x_train.shape)
-    # all_digits = np.concatenate([x_train, x_test])
-    # all_digits = all_digits.astype("float32") / 255.0
-    # all_digits = np.reshape(all_digits, (-1, 28, 28, 1))
-    # print(all_digits.shape)
-
-    all_digits = np.zeros((70, 28, 28,1)).astype("float32")
-    dataset = tf.data.Dataset.from_tensor_slices(all_digits)
-    dataset = dataset.shuffle(buffer_size=1024).batch(batch_size)
-
-    gan = GAN(discriminator=discriminator, generator=generator, latent_dim=latent_dim)
-    gan.compile(
-        d_optimizer=keras.optimizers.Adam(learning_rate=0.0003),
-        g_optimizer=keras.optimizers.Adam(learning_rate=0.0003),
-        loss_fn=keras.losses.BinaryCrossentropy(from_logits=True),
+    # Create cycle gan model
+    cycle_gan_model = CycleGan(
+        generator_G=gen_G, generator_F=gen_F, discriminator_X=disc_X, discriminator_Y=disc_Y
     )
 
-    # To limit the execution time, we only train on 100 batches. You can train on
-    # the entire dataset. You will need about 20 epochs to get nice results.
-    gan.fit(dataset.take(100), epochs=1)
-    
+    # Compile the model
+    cycle_gan_model.compile(
+        gen_G_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
+        gen_F_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
+        disc_X_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
+        disc_Y_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
+        gen_loss_fn=generator_loss_fn,
+        disc_loss_fn=discriminator_loss_fn
+    )
+
+
+    cycle_gan_model.fit(
+        tf.data.Dataset.zip((photo_data.train_data, illo_data.train_data)),
+        epochs=1
+    )
+
+    # model = Ganilla()
+    # # model(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
+    # checkpoint_path = "checkpoints" + os.sep + \
+    #     "ganilla" + os.sep + timestamp + os.sep
+    # logs_path = "logs" + os.sep + "ganilla" + \
+    #     os.sep + timestamp + os.sep
+
    
     # # Load checkpoints
     # if ARGS.load_checkpoint is not None:
