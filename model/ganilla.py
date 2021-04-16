@@ -196,7 +196,6 @@ class Discriminator(tf.keras.Model):
 gen_G = Generator("G")
 gen_F = Generator("F")
 
-# Get the discriminators
 disc_X = Discriminator(name="X")
 disc_Y = Discriminator(name="Y")
 
