@@ -6,21 +6,17 @@ Brown University
 
 import tensorflow as tf
 import tensorflow_addons as tfa
-
+ 
 from tensorflow import keras
 
 from tensorflow.keras import layers
 from tensorflow.keras.layers import \
     Conv2D, MaxPool2D, Dropout, Flatten, Dense, AveragePooling2D, BatchNormalization, \
-    ZeroPadding2D, Conv2DTranspose, UpSampling2D, Concatenate, LeakyReLU, ReLU
+    ZeroPadding2D, Conv2DTranspose, UpSampling2D, Concatenate, LeakyReLU, ReLU, Activation
 from tensorflow_addons.layers import InstanceNormalization
 from tensorflow.keras.losses import MeanAbsoluteError
 
 import hyperparameters as hp
-
-
-
-
 
 class ReflectionPadding2D(layers.Layer):
     """Implements Reflection Padding as a layer.
@@ -47,137 +43,95 @@ class ReflectionPadding2D(layers.Layer):
         ]
         return tf.pad(input_tensor, padding_tensor, mode="REFLECT")
 
-input_img_size = (256, 256, 3)
-kernel_init = tf.initializers.RandomNormal(mean=0.0, stddev=0.02)
-gamma_init = tf.initializers.RandomNormal(mean=0.0, stddev=0.02)
 
-def residual_block(
-    x,
-    activation,
-    kernel_initializer=kernel_init,
-    kernel_size=(3, 3),
-    strides=(1, 1),
-    padding="valid",
-    gamma_initializer=gamma_init,
-    use_bias=False,
-):
-    dim = x.shape[-1]
-    input_tensor = x
+class Generator(tf.keras.Model):
+    def __init__(self, name=None):
+        super(Generator, self).__init__()
+        self.gamma_init = tf.keras.initializers.RandomNormal(mean=0.0, stddev=0.02)
+        self.kernel_init = tf.keras.initializers.RandomNormal(mean=0.0, stddev=0.02)
+        
+        self.downsampling = [
+            ReflectionPadding2D(padding=(3, 3)),
+            layers.Conv2D(64, (7, 7), kernel_initializer=self.kernel_init, use_bias=False),
+            tfa.layers.InstanceNormalization(gamma_initializer=self.gamma_init),
+            layers.Activation("relu"),
+            # downsampling blocks
+            Conv2D(128, kernel_size=(3,3), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+            InstanceNormalization(gamma_initializer=self.gamma_init),
+            ReLU(),
 
-    x = ReflectionPadding2D()(input_tensor)
-    x = layers.Conv2D(
-        dim,
-        kernel_size,
-        strides=strides,
-        kernel_initializer=kernel_initializer,
-        padding=padding,
-        use_bias=use_bias,
-    )(x)
-    x = tfa.layers.InstanceNormalization(gamma_initializer=gamma_initializer)(x)
-    x = activation(x)
+            Conv2D(256, kernel_size=(3,3), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+            InstanceNormalization(gamma_initializer=self.gamma_init),
+            ReLU(),
+        ]
 
-    x = ReflectionPadding2D()(x)
-    x = layers.Conv2D(
-        dim,
-        kernel_size,
-        strides=strides,
-        kernel_initializer=kernel_initializer,
-        padding=padding,
-        use_bias=use_bias,
-    )(x)
-    x = tfa.layers.InstanceNormalization(gamma_initializer=gamma_initializer)(x)
-    x = layers.add([input_tensor, x])
-    return x
+        self.resnet1 = [
+            ReflectionPadding2D(),
+            layers.Conv2D(256, kernel_size=(3,3), strides=(1,1), padding="valid", kernel_initializer=self.kernel_init, use_bias=False),
+            InstanceNormalization(gamma_initializer=self.gamma_init),
+            ReLU(),
 
+            ReflectionPadding2D(),
+            layers.Conv2D(256, kernel_size=(3,3), strides=(1,1), padding="valid", kernel_initializer=self.kernel_init, use_bias=False),
+            InstanceNormalization(gamma_initializer=self.gamma_init),
+        ]
 
-def downsample(
-    x,
-    filters,
-    activation,
-    kernel_initializer=kernel_init,
-    kernel_size=(3, 3),
-    strides=(2, 2),
-    padding="same",
-    gamma_initializer=gamma_init,
-    use_bias=False,
-):
-    x = layers.Conv2D(
-        filters,
-        kernel_size,
-        strides=strides,
-        kernel_initializer=kernel_initializer,
-        padding=padding,
-        use_bias=use_bias,
-    )(x)
-    x = tfa.layers.InstanceNormalization(gamma_initializer=gamma_initializer)(x)
-    if activation:
-        x = activation(x)
-    return x
+        self.resnet2 = [
+            ReflectionPadding2D(),
+            layers.Conv2D(256, kernel_size=(3,3), strides=(1,1), padding="valid", kernel_initializer=self.kernel_init, use_bias=False),
+            InstanceNormalization(gamma_initializer=self.gamma_init),
+            ReLU(),
 
+            ReflectionPadding2D(),
+            layers.Conv2D(256, kernel_size=(3,3), strides=(1,1), padding="valid", kernel_initializer=self.kernel_init, use_bias=False),
+            InstanceNormalization(gamma_initializer=self.gamma_init),
+        ]
 
-def upsample(
-    x,
-    filters,
-    activation,
-    kernel_size=(3, 3),
-    strides=(2, 2),
-    padding="same",
-    kernel_initializer=kernel_init,
-    gamma_initializer=gamma_init,
-    use_bias=False,
-):
-    x = layers.Conv2DTranspose(
-        filters,
-        kernel_size,
-        strides=strides,
-        padding=padding,
-        kernel_initializer=kernel_initializer,
-        use_bias=use_bias,
-    )(x)
-    x = tfa.layers.InstanceNormalization(gamma_initializer=gamma_initializer)(x)
-    if activation:
-        x = activation(x)
-    return x
+        self.upsampling = [
+            Conv2DTranspose(128, kernel_size=(3,3), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+            InstanceNormalization(gamma_initializer=self.gamma_init),
+            ReLU(),
+
+            Conv2DTranspose(64, kernel_size=(3,3), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+            InstanceNormalization(gamma_initializer=self.gamma_init),
+            ReLU(),
+
+            ReflectionPadding2D(padding=(3, 3)),
+            layers.Conv2D(3, (7, 7), padding="valid"),
+            layers.Activation("tanh")
+        ]
+
+    def call(self, x):
+        num_downsampling_blocks = 2
+        num_residual_blocks = 9
+        num_upsample_blocks = 2
+        print("----downsampling---")
+        for l in self.downsampling:
+            print("x", x.shape)
+            x = l(x)
 
 
-def get_resnet_generator(
-    filters=64,
-    num_downsampling_blocks=2,
-    num_residual_blocks=9,
-    num_upsample_blocks=2,
-    gamma_initializer=gamma_init,
-    name=None,
-):
-    img_input = layers.Input(shape=input_img_size, name=name + "_img_input")
-    x = ReflectionPadding2D(padding=(3, 3))(img_input)
-    x = layers.Conv2D(filters, (7, 7), kernel_initializer=kernel_init, use_bias=False)(
-        x
-    )
-    x = tfa.layers.InstanceNormalization(gamma_initializer=gamma_initializer)(x)
-    x = layers.Activation("relu")(x)
+        original = tf.identity(x)
+        print("---- resnet1 ---")
+        for l in self.resnet1:
+            print("x", x.shape)
+            x = l(x)
+        x = layers.add([original, x])
+        original = tf.identity(x)
 
-    # Downsampling
-    for _ in range(num_downsampling_blocks):
-        filters *= 2
-        x = downsample(x, filters=filters, activation=layers.Activation("relu"))
+        print("---- resnet2 ---")
+        for l in self.resnet2:
+            print("x", x.shape)
+            x = l(x)
+        x = layers.add([original, x])
 
-    # Residual blocks
-    for _ in range(num_residual_blocks):
-        x = residual_block(x, activation=layers.Activation("relu"))
+        print("------ upsampling -- ")
+        # Final block
+        for l in self.upsampling:
+            print("x", x.shape)
+            x = l(x)
 
-    # Upsampling
-    for _ in range(num_upsample_blocks):
-        filters //= 2
-        x = upsample(x, filters, activation=layers.Activation("relu"))
-
-    # Final block
-    x = ReflectionPadding2D(padding=(3, 3))(x)
-    x = layers.Conv2D(3, (7, 7), padding="valid")(x)
-    x = layers.Activation("tanh")(x)
-
-    model = keras.models.Model(img_input, x, name=name)
-    return model
-
+        return x
 
 """
 The Discriminator model, leveraging PatchGAN architecture.
@@ -208,39 +162,23 @@ class Discriminator(tf.keras.Model):
 
         self.architecture = [
             # kernel_initializer 
-            Conv2D(filters=64, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="poopyfartface"),
+            Conv2D(filters=64, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block1_conv1"),
             LeakyReLU(RELU),
 
-            Conv2D(filters=128, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block2_conv1"),
+            Conv2D(filters=128, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block2_conv1", use_bias=False),
             InstanceNormalization(gamma_initializer=GAMMA_INIT), # Alternative: InstanceNormalization
             LeakyReLU(RELU),
 
-            Conv2D(filters=256, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block2_conv1"),
+            Conv2D(filters=256, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block2_conv1", use_bias=False),
             InstanceNormalization(gamma_initializer=GAMMA_INIT),
             LeakyReLU(RELU),
 
-            Conv2D(filters=512, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=1, padding="same", name="block3_conv1"),
+            Conv2D(filters=512, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=1, padding="same", name="block3_conv1", use_bias=False),
             InstanceNormalization(gamma_initializer=GAMMA_INIT),
             LeakyReLU(RELU),
 
             Conv2D(filters=1, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=1, padding="same", activation="sigmoid", name="block4_conv1")
         ]
-        # Conv1:  in: 64, out:128
-        # batchnorm 2d 128
-        # leaky relu
-        # ----
-        # Conv2:  in: 128, out: 256
-        # batchnorm 2d 256
-        # leaky relu
-        # ---
-        # Conv3:  in: 256, out: 512
-        # stride = 1
-        # batch norm 2d: 512
-        # leaky relu
-        # --- 
-        # Dense layer? Convolution from 512 to 1
-        # 512->1, stride=1
-        # sigmoid
 
     def call(self, x):
         for layer in self.architecture:
@@ -251,35 +189,18 @@ class Discriminator(tf.keras.Model):
     def loss_fn(disc_real_output, disc_fake_output):
         """ Loss function for model. """
         bce = tf.keras.losses.BinaryCrossentropy()
-
-        # wants to maximize correctly classifying the reals as reals and the fakes as fakes
-        # ground truth: all 1's for real, all 0's for fake
-        # predicted: disc_real_output, disc_fake_output
-
         # the "real" labels to perform BCE on
         truth_real = tf.ones_like(disc_real_output)
         truth_fake = tf.zeros_like(disc_fake_output) 
 
         return bce(truth_real, disc_real_output) + bce(truth_fake, disc_fake_output)
 
-        # Loss function for evaluating adversarial loss.
-        # adv_loss_fn = keras.losses.MeanSquaredError()
-        # def discriminator_loss_fn(real, fake):
-        #     real_loss = adv_loss_fn(tf.ones_like(real), real)
-        #     fake_loss = adv_loss_fn(tf.zeros_like(fake), fake)
-        #     return (real_loss + fake_loss) * 0.5
-
-
-# Get the generators
-gen_G = get_resnet_generator(name="generator_G")
-gen_F = get_resnet_generator(name="generator_F")
+gen_G = Generator("G")
+gen_F = Generator("F")
 
 # Get the discriminators
 disc_X = Discriminator(name="X")
 disc_Y = Discriminator(name="Y")
-
-# disc_X = get_discriminator(name="discriminator_X")
-# disc_Y = get_discriminator(name="discriminator_Y")
 
 
 
