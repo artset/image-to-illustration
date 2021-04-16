@@ -9,14 +9,13 @@ import sys
 import argparse
 import re
 from datetime import datetime
-# import tensorflow as tf
+import tensorflow as tf
 
 import hyperparameters as hp
-# from models import YourModel, VGGModel
+from models import Ganilla
 from preprocess import Datasets
 from skimage.transform import resize
-# from tensorboard_utils import \
-#         ImageLabelingLogger, ConfusionMatrixLogger, CustomModelSaver
+from tensorboard_utils import  CustomModelSaver
 
 from skimage.io import imread
 from skimage.segmentation import mark_boundaries
@@ -68,32 +67,33 @@ def parse_args():
     return parser.parse_args()
 
 
-# def train(model, datasets, checkpoint_path, logs_path, init_epoch):
-#     """ Training routine. """
+def train(model, datasets, checkpoint_path, logs_path, init_epoch):
+    """ Training routine. """
 
-#     # Keras callbacks for training
-#     callback_list = [
-#         tf.keras.callbacks.TensorBoard(
-#             log_dir=logs_path,
-#             update_freq='batch',
-#             profile_batch=0),
-#         ImageLabelingLogger(logs_path, datasets),
-#         CustomModelSaver(checkpoint_path, hp.max_num_weights)
-#     ]
+    # Keras callbacks for training
+    callback_list = [
+        tf.keras.callbacks.TensorBoard(
+            log_dir=logs_path,
+            update_freq='batch',
+            profile_batch=0),
+        # ImageLabelingLogger(logs_path, datasets),
+        CustomModelSaver(checkpoint_path, hp.max_num_weights)
+    ]
 
-#     # Include confusion logger in callbacks if flag set
-#     if ARGS.confusion:
-#         callback_list.append(ConfusionMatrixLogger(logs_path, datasets))
+    # Include confusion logger in callbacks if flag set
+    if ARGS.confusion:
+        callback_list.append(ConfusionMatrixLogger(logs_path, datasets))
 
-#     # Begin training
-#     model.fit(
-#         x=datasets.train_data,
-#         validation_data=datasets.test_data,
-#         epochs=hp.num_epochs,
-#         batch_size=None,
-#         callbacks=callback_list,
-#         initial_epoch=init_epoch,
-#     )
+    # Begin training
+    model.fit(
+        x=datasets.train_data,
+        validation_data=datasets.test_data,
+        epochs=hp.num_epochs,
+        batch_size=None,
+        callbacks=callback_list,
+        initial_epoch=init_epoch,
+    )
+    model.summary()
 
 
 # def test(model, test_data):
@@ -104,6 +104,7 @@ def parse_args():
 #         x=test_data,
 #         verbose=1,
 #     )
+
 
 
 def main():
@@ -135,33 +136,17 @@ def main():
     os.chdir(sys.path[0])
 
     datasets = Datasets(ARGS.data)
-    # print(dindjkn)
 
-    # model = YourModel()
+    model = Ganilla()
     # model(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
-    # checkpoint_path = "checkpoints" + os.sep + \
-    #     "your_model" + os.sep + timestamp + os.sep
-    # logs_path = "logs" + os.sep + "your_model" + \
-    #     os.sep + timestamp + os.sep
+    checkpoint_path = "checkpoints" + os.sep + \
+        "ganilla" + os.sep + timestamp + os.sep
+    logs_path = "logs" + os.sep + "ganilla" + \
+        os.sep + timestamp + os.sep
 
-    # # Print summary of model
-    # model.summary()
-    # # else:
-    # #     model = VGGModel()
-    # #     checkpoint_path = "checkpoints" + os.sep + \
-    # #         "vgg_model" + os.sep + timestamp + os.sep
-    # #     logs_path = "logs" + os.sep + "vgg_model" + \
-    # #         os.sep + timestamp + os.sep
-    # #     model(tf.keras.Input(shape=(224, 224, 3)))
-
-    # #     # Print summaries for both parts of the model
-    # #     model.vgg16.summary()
-    # #     model.head.summary()
-
-    # #     # Load base of VGG model
-    # #     print("loading...", ARGS.load_vgg)
-    # #     model.vgg16.load_weights(ARGS.load_vgg, by_name=True)
-
+    # Print summary of model
+    
+   
     # # Load checkpoints
     # if ARGS.load_checkpoint is not None:
     #     print("loading checkpoint...")
@@ -175,10 +160,10 @@ def main():
 
     # print("compiling model graph...")
     # # Compile model graph
-    # model.compile(
-    #     optimizer=model.optimizer,
-    #     loss=model.loss_fn,
-    #     metrics=["sparse_categorical_accuracy"])
+    model.compile(
+        # optimizer=model.optimizer,
+        # loss=model.loss_fn,
+        metrics=["gen_illos_loss", "gen_photos_loss", "disc_illos_loss", "disc_photos_loss"])
 
     # if ARGS.evaluate:
     #     test(model, datasets.test_data)
@@ -189,7 +174,7 @@ def main():
     #     path = ARGS.data + os.sep + ARGS.lime_image
     #     LIME_explainer(model, path, datasets.preprocess_fn)
     # else:
-    #     train(model, datasets, checkpoint_path, logs_path, init_epoch)
+    train(model, datasets, checkpoint_path, logs_path, init_epoch)
     
 
 

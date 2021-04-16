@@ -24,7 +24,7 @@ class Datasets():
         # TRAIN DATA
         self.train_data = self.get_data(os.path.join(self.data_path, "train/"), True, True)
         # TEST DATA
-        # self.test_data = self.get_data(os.path.join(self.data_path, "test/"), False, False)
+        self.test_data = self.get_data(os.path.join(self.data_path, "test/"), False, False)
 
     def preprocess_fn(self, img):
         """ Preprocess function for ImageDataGenerator. """
@@ -74,7 +74,7 @@ class Datasets():
         data_gen = data_gen.flow_from_directory(
             path,
             target_size=(img_size, img_size),
-            save_to_dir=os.path.join(self.data_path, "preprocess/"),
+            # save_to_dir=os.path.join(self.data_path, "preprocess/"),
             batch_size=hp.batch_size,
             shuffle=shuffle)
   
