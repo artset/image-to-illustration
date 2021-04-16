@@ -16,10 +16,10 @@ The data for this model can be found [here](https://github.com/artset/cs1430-fin
   - [x] Scrape Miyazaki images from Google Images [Minna, Katherine]
   - [x] Write preprocessing script to prepare images for model  [Minna, Katherine]
 - [ ] Model 
-  - [ ] Write script to run pipeline
+  - [x] Write script to run pipeline [Minna, Katherine]
   - [ ] Set up tensorboard
   - [ ] Model architecture
     - [ ] Generator [Zoe, Liyaan]
     - [x] Discriminator [Minna, Katherine]
-    - [ ] Ganilla model that puts everything together [Zoe, Liyaan]
+    - [x] Ganilla model that puts everything together [Katherine]
 - [x] Progress Report [Minna, Katherine, Liyaan]

@@ -60,11 +60,9 @@ class Dataset():
 
         return data
 
-
-
 ## to save images in in main
 
-
+    # RUN THIS IN MAIN TO LOOK AT IMAGES
     # list_data = list(illo_data.train_data.as_numpy_iterator())
     # print(list_data)
     # print("length of data", len(list_data))
