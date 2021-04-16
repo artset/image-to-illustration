@@ -12,6 +12,9 @@ from datetime import datetime
 import tensorflow as tf
 from tensorflow import keras
 
+from PIL import Image
+import matplotlib as mpl
+
 import hyperparameters as hp
 from models import CycleGan, gen_F, gen_G, disc_X, disc_Y
 from preprocess import Dataset
@@ -156,28 +159,39 @@ def main():
     illo_data = Dataset("../data/train/illustration", "../data/test/illustration")
     photo_data = Dataset("../data/train/landscape", "../data/test/landscape")
 
-
+    list_data = list(illo_data.train_data.as_numpy_iterator())
+    print(list_data)
+    print("length of data", len(list_data))
+    count = 1
+    for d in list_data:
+        print("d", d, d.shape)
+        print("d0", d[0].shape)
+        # im =  Image.fromarray(d[0])
+        plt.imshow(d[0])
+        plt.savefig("figure" + str(count))
+        count += 1
+        # break
 
     # Create cycle gan model
-    cycle_gan_model = CycleGan(
-        generator_G=gen_G, generator_F=gen_F, discriminator_X=disc_X, discriminator_Y=disc_Y
-    )
+    # cycle_gan_model = CycleGan(
+    #     generator_G=gen_G, generator_F=gen_F, discriminator_X=disc_X, discriminator_Y=disc_Y
+    # )
 
-    # Compile the model
-    cycle_gan_model.compile(
-        gen_G_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
-        gen_F_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
-        disc_X_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
-        disc_Y_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
-        gen_loss_fn=generator_loss_fn,
-        disc_loss_fn=discriminator_loss_fn
-    )
+    # # Compile the model
+    # cycle_gan_model.compile(
+    #     gen_G_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
+    #     gen_F_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
+    #     disc_X_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
+    #     disc_Y_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
+    #     gen_loss_fn=generator_loss_fn,
+    #     disc_loss_fn=discriminator_loss_fn
+    # )
 
 
-    cycle_gan_model.fit(
-        tf.data.Dataset.zip((photo_data.train_data, illo_data.train_data)),
-        epochs=1
-    )
+    # cycle_gan_model.fit(
+    #     tf.data.Dataset.zip((photo_data.train_data, illo_data.train_data)),
+    #     epochs=1
+    # )
 
     # model = Ganilla()
     # # model(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
