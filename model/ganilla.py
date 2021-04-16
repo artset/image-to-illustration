@@ -309,8 +309,8 @@ class Ganilla(keras.Model):
         )
 
         return {
-            "G_loss": total_loss_G,
-            "F_loss": total_loss_F,
-            "D_X_loss": disc_X_loss,
-            "D_Y_loss": disc_Y_loss,
+            "gen1_loss": total_loss_G,
+            "gen2_loss": total_loss_F,
+            "disc1_loss": disc_X_loss,
+            "disc2_loss": disc_Y_loss,
         }
