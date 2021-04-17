@@ -169,12 +169,14 @@ def main():
     # Run script from location of run.py
     os.chdir(sys.path[0])
 
-    ### # TEMP TESTIN
+    ## # TEMP TESTIN
     # illo_data = Dataset("../data/train/illustration", "../data/test/illustration")
+    # illo_data.check_images("../data/train/illustration/miyazaki")
     # illo_data.check_images("../data/test/illustration/miyazaki")
     # photo_data = Dataset("../data/train/landscape", "../data/test/landscape")
     # photo_data.check_images("../data/train/landscape/landscape")
     # photo_data.check_images("../data/test/landscape/landscape")
+    # return
 
     print("Loading datasets...")
     illo_data = Dataset("../data/train/illustration", "../data/test/illustration")
@@ -233,7 +235,7 @@ def main():
     else:
         train(model, photo_data, illo_data, checkpoint_path, logs_path, init_epoch, timestamp)
     
-    ######## JUST TESTING GENERATOR
+    ####### JUST TESTING GENERATOR
     # model = Generator()
     # model(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
     # checkpoint_path = "checkpoints" + os.sep + \

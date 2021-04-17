@@ -85,5 +85,20 @@ class Dataset():
         for filename in os.listdir(filepath):
             count +=1
             img = Image.open(filepath + os.sep + filename)
-            print(count, img.format, filepath)
             
+            data = open(filepath + os.sep + filename,'rb').read(10)
+
+            # check if file is JPG or JPEG
+            if data[:3] == b'\xff\xd8\xff':
+                # print(filename+" is: JPG/JPEG.")
+                # print("")
+                continue
+                # break
+            # check if file is PNG
+            elif data[:8] == b'\x89\x50\x4e\x47\x0d\x0a\x1a\x0a':
+                # print(filename+" is: PNG.")
+                print(filename + "is png")
+            # check if file is GIF
+            else:
+                print(filename+" is: invalid.")
+                
