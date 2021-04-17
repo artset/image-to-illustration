@@ -98,6 +98,11 @@ class Dataset():
             elif data[:8] == b'\x89\x50\x4e\x47\x0d\x0a\x1a\x0a':
                 # print(filename+" is: PNG.")
                 print(filename + "is png")
+                new_filename = filename[:-3]
+                
+                print(new_filename)
+                print(filepath + os.sep + filename, filepath + os.sep +  new_filename + "png")
+                os.rename(filepath + os.sep + filename, filepath + os.sep +  new_filename + "png")
             # check if file is GIF
             else:
                 print(filename+" is: invalid.")
