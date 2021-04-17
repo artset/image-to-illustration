@@ -394,37 +394,6 @@ class Generator(tf.keras.Model):
 
         return result
 
-        #TODO: NEED TO combine final_layer with above architecture
-        # Vanilla RESNET18 Model from the paper here for reference.
-        # vanilla_resnet = [
-        #     Conv2D(filters=64, kernel_size=7, strides=(2,2), padding="same", 
-        #         kernel_initializer="random_normal", activation = "relu", name="conv1"),
-        #     MaxPool2D(3, strides=2),
-            
-        #     Conv2D(filters=64, kernel_size=3, strides=(2,2), padding="same", 
-        #         kernel_initializer="random_normal", activation = "relu", name="conv2_x"),
-        #     Conv2D(filters=64, kernel_size=3, strides=(2,2), padding="same", 
-        #         kernel_initializer="random_normal", activation = "relu", name="conv2_x"),
-
-        #     Conv2D(filters=128, kernel_size=3, strides=(2,2), padding="same", 
-        #         kernel_initializer="random_normal", activation = "relu", name="conv3_x"),
-        #     Conv2D(filters=128, kernel_size=3, strides=(2,2), padding="same", 
-        #         kernel_initializer="random_normal", activation = "relu", name="conv3_x"),
-
-        #     Conv2D(filters=256, kernel_size=3, strides=(2,2), padding="same", 
-        #         kernel_initializer="random_normal", activation = "relu", name="conv4_x"),
-        #     Conv2D(filters=256, kernel_size=3, strides=(2,2), padding="same", 
-        #         kernel_initializer="random_normal", activation = "relu", name="conv4_x"),
-            
-        #     Conv2D(filters=512, kernel_size=3, strides=(2,2), padding="same", 
-        #         kernel_initializer="random_normal", activation = "relu", name="conv4_x"),
-        #     Conv2D(filters=512, kernel_size=3, strides=(2,2), padding="same", 
-        #         kernel_initializer="random_normal", activation = "relu", name="conv4_x"),
-        #     AveragePooling2D(pool_size=(2,2), padding="same"),
-        #     Dense(1000, activation=softmax) 
-        # ]
-
-
 
 """
 The Discriminator model, leveraging PatchGAN architecture.

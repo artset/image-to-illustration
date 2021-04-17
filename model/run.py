@@ -79,6 +79,7 @@ def parse_args():
 
 
 def train(model, photo_data, illo_data, checkpoint_path, logs_path, init_epoch, timestamp):
+    print("Training model...")
 
     # checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     #     filepath="checkpoints" + os.sep + timestamp + os.sep + "ganilla_{epoch:03d}", 
@@ -101,10 +102,13 @@ def train(model, photo_data, illo_data, checkpoint_path, logs_path, init_epoch, 
     )
 
 def test(model, photo_data, illo_data, checkpoint):
-    print("hello)")
+    print("Testing model...")
     """ Testing routine. """
 
-    model.load_weights(checkpoint).expect_partial()
+    # Generates image
+    predictions, images = generate_illo(model, photo_data)
+    
+    # TODO: Test Cyclical Nature for Reconstruction
 
     # Run model on test set
     # model.evaluate(
@@ -113,10 +117,20 @@ def test(model, photo_data, illo_data, checkpoint):
     # )
 
 
+def generate_illo(model, photo_data):
+    model.load_weights(checkpoint).expect_partial()
+    prediction = model.g1(img, training=False)
+    predictions = (prediction * 127.5 + 127.5).astype(np.uint8)
+    imgs = (imgs * 127.5 + 127.5).numpy().astype(np.uint8)
+
+    # TODO: Save generated images to pill
+
+    return predictions, imgs
+
+
 # Loss function for evaluating adversarial loss
 # bce = keras.losses.MeanAbsoluteError()
 bce = keras.losses.BinaryCrossentropy()
-
 
 # Define the loss function for the generators
 def generator_loss_fn(fake):
@@ -128,7 +142,7 @@ def generator_loss_fn(fake):
 def discriminator_loss_fn(real, fake):
     real_loss = bce(tf.ones_like(real), real)
     fake_loss = bce(tf.zeros_like(fake), fake)
-    return (real_loss + fake_loss) # * .5? 
+    return (real_loss + fake_loss)  * .5 # Added this back
 
 
 
@@ -137,8 +151,6 @@ def main():
     time_now = datetime.now()
     timestamp = time_now.strftime("%m%d%y-%H%M%S")
     init_epoch = 0
-
-
 
     checkpoint_path = "checkpoints" + os.sep + \
         "ganilla" + os.sep + timestamp + os.sep
@@ -157,6 +169,7 @@ def main():
     # Run script from location of run.py
     os.chdir(sys.path[0])
 
+    print("Loading datasets...")
     illo_data = Dataset("../data/train/illustration", "../data/test/illustration")
     photo_data = Dataset("../data/train/landscape", "../data/test/landscape")
 
@@ -170,6 +183,7 @@ def main():
     disc_X(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
     disc_Y(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
 
+    gen_G.summary()
     disc_X.summary()
 
     if ARGS.load_checkpoint is not None:
@@ -195,10 +209,6 @@ def main():
     model = Ganilla(
         generator_G=gen_G, generator_F=gen_F, discriminator_X=disc_X, discriminator_Y=disc_Y
     )
-
-    # If loading from a checkpoint, the loaded checkpoint's directory
-    # will be used for future checkpoints
-   
 
 
     # Compile the model
