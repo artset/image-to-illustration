@@ -167,15 +167,15 @@ class Discriminator(tf.keras.Model):
             InstanceNormalization(gamma_initializer=GAMMA_INIT), # Alternative: InstanceNormalization
             LeakyReLU(RELU),
 
-            Conv2D(filters=256, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block2_conv1", use_bias=False),
+            Conv2D(filters=256, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=STRIDE, padding="same", name="block3_conv1", use_bias=False),
             InstanceNormalization(gamma_initializer=GAMMA_INIT),
             LeakyReLU(RELU),
 
-            Conv2D(filters=512, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=1, padding="same", name="block3_conv1", use_bias=False),
+            Conv2D(filters=512, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=1, padding="same", name="block4_conv1", use_bias=False),
             InstanceNormalization(gamma_initializer=GAMMA_INIT),
             LeakyReLU(RELU),
 
-            Conv2D(filters=1, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=1, padding="same", activation="sigmoid", name="block4_conv1")
+            Conv2D(filters=1, kernel_initializer=KERNEL_INIT, kernel_size=KERNEL_SIZE, strides=1, padding="same", activation="sigmoid", name="block5_conv1")
         ]
 
     def call(self, x):

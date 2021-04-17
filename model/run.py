@@ -78,32 +78,23 @@ def parse_args():
     return parser.parse_args()
 
 
-def train(model, checkpoint_path, logs_path, init_epoch):
-    """ Training routine. """
+def train(model, photo_data, illo_data, checkpoint_path, logs_path, init_epoch):
 
     # Keras callbacks for training
-    # callback_list = [
-    #     tf.keras.callbacks.TensorBoard(
-    #         log_dir=logs_path,
-    #         update_freq='batch',
-    #         profile_batch=0),
-    #     # ImageLabelingLogger(logs_path, datasets),
-    #     CustomModelSaver(checkpoint_path, hp.max_num_weights)
-    # ]
+    callback_list = [
+        tf.keras.callbacks.TensorBoard(
+            log_dir=logs_path,
+            update_freq='batch',
+            profile_batch=0),
+        CustomModelSaver(checkpoint_path, hp.max_num_weights)
+    ]
 
-    train_data = np.zeros((1, 256, 256, 3))
-    # Begin training
     model.fit(
-        x = train_data,
-        # x=datasets.train_data,
-        # validation_data=datasets.test_data,
+        tf.data.Dataset.zip((photo_data.train_data, illo_data.train_data)),
         epochs=hp.num_epochs,
-        batch_size=None,
-        # callbacks=callback_list,
         initial_epoch=init_epoch,
+        callbacks=callback_list,
     )
-    model.summary()
-
 
 # def test(model, test_data):
 #     """ Testing routine. """
@@ -151,13 +142,20 @@ def main():
         init_epoch = int(re.match(regex, ARGS.load_checkpoint).group(1)) + 1
         timestamp = os.path.basename(os.path.dirname(ARGS.load_checkpoint))
 
+    checkpoint_path = "checkpoints" + os.sep + \
+        "ganilla" + os.sep + timestamp + os.sep
+    logs_path = "logs" + os.sep + "ganilla" + \
+        os.sep + timestamp + os.sep
+
+    if not ARGS.evaluate and not os.path.exists(checkpoint_path):
+        os.makedirs(checkpoint_path)
+
     # If paths provided by program arguments are accurate, then this will
     # ensure they are used. If not, these directories/files will be
     # set relative to the directory of run.py
     if os.path.exists(ARGS.data):
         ARGS.data = os.path.abspath(ARGS.data)
-    if os.path.exists(ARGS.load_vgg):
-        ARGS.load_vgg = os.path.abspath(ARGS.load_vgg)
+    
 
     # Run script from location of run.py
     os.chdir(sys.path[0])
@@ -179,30 +177,26 @@ def main():
         disc_loss_fn=discriminator_loss_fn,
     )
 
-    ganilla.fit(
-        tf.data.Dataset.zip((photo_data.train_data, illo_data.train_data)),
-        epochs=1,
-    )
-
-
-    # # Create GANILLA model
-    # ganilla = Ganilla()
-
-    # # # Compile the model
-    # ganilla.compile(
-    # )
-
     # ganilla.fit(
     #     tf.data.Dataset.zip((photo_data.train_data, illo_data.train_data)),
-    #     epochs=1
+    #     epochs=1,
     # )
 
-    # model = Ganilla()
-    # # model(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
-    # checkpoint_path = "checkpoints" + os.sep + \
-    #     "ganilla" + os.sep + timestamp + os.sep
-    # logs_path = "logs" + os.sep + "ganilla" + \
-    #     os.sep + timestamp + os.sep
+    # ganilla.g1.summary()
+
+
+    if ARGS.evaluate:
+        print("evaluating model...")
+        # test(model, datasets.test_data)
+
+        # change the image path to be the image of your choice by changing
+        # the lime-image flag when calling run.py to investigate
+        # i.e. python run.py --evaluate --lime-image test/Bedroom/image_003.jpg
+        # path = ARGS.data + os.sep + ARGS.lime_image
+        # LIME_explainer(model, path, datasets.preprocess_fn)
+    else:
+        train(ganilla, photo_data, illo_data, checkpoint_path, logs_path, 0)
+    
 
     ######## JUST TESTING GENERATOR
     # model = Generator()
