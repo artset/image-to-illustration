@@ -96,14 +96,15 @@ def train(model, photo_data, illo_data, checkpoint_path, logs_path, init_epoch):
         callbacks=callback_list,
     )
 
-# def test(model, test_data):
-#     """ Testing routine. """
+def test(model, photo_data, illo_data, checkpoint):
+    print("hello)")
+    """ Testing routine. """
 
-#     # Run model on test set
-#     model.evaluate(
-#         x=test_data,
-#         verbose=1,
-#     )
+    # Run model on test set
+    # model.evaluate(
+    #     x=test_data,
+    #     verbose=1,
+    # )
 
 
 # Loss function for evaluating adversarial loss
@@ -127,7 +128,6 @@ def discriminator_loss_fn(real, fake):
 
 def main():
     """ Main function. """
-
     time_now = datetime.now()
     timestamp = time_now.strftime("%m%d%y-%H%M%S")
     init_epoch = 0
@@ -136,10 +136,7 @@ def main():
     # will be used for future checkpoints
     if ARGS.load_checkpoint is not None:
         ARGS.load_checkpoint = os.path.abspath(ARGS.load_checkpoint)
-
-        # Get timestamp and epoch from filename
-        regex = r"(?:.+)(?:\.e)(\d+)(?:.+)(?:.h5)"
-        init_epoch = int(re.match(regex, ARGS.load_checkpoint).group(1)) + 1
+        init_epoch = int(ARGS.load_checkpoint[-2:])
         timestamp = os.path.basename(os.path.dirname(ARGS.load_checkpoint))
 
     checkpoint_path = "checkpoints" + os.sep + \
@@ -156,19 +153,34 @@ def main():
     if os.path.exists(ARGS.data):
         ARGS.data = os.path.abspath(ARGS.data)
     
-
     # Run script from location of run.py
     os.chdir(sys.path[0])
 
     illo_data = Dataset("../data/train/illustration", "../data/test/illustration")
     photo_data = Dataset("../data/train/landscape", "../data/test/landscape")
 
-    ganilla = Ganilla(
+    model = Ganilla(
         generator_G=gen_G, generator_F=gen_F, discriminator_X=disc_X, discriminator_Y=disc_Y
     )
 
+    if ARGS.load_checkpoint is not None:
+        print("loading checkpoint...")
+        
+        # checkpoints/ganilla/<TIMESTAMP>/epoch_2/g1_weights.h5
+        # ARGS.load_checkpoint
+        checkpoint = ARGS.load_checkpoint
+        checkpoint_g1 = checkpoint + "g1_weights.h5"
+        checkpoint_g2 = checkpoint + "g2_weights.h5"
+        checkpoint_d1 = checkpoint + "d1_weights.h5"
+        checkpoint_d2 = checkpoint + "d2_weights.h5"
+
+        model.g1.load_weights(checkpoint_g1, by_name=False)
+        model.g2.load_weights(checkpoint_g2, by_name=False)
+        model.d1.load_weights(checkpoint_d1, by_name=False)
+        model.d2.load_weights(checkpoint_d2, by_name=False)
+
     # Compile the model
-    ganilla.compile(
+    model.compile(
         gen_G_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
         gen_F_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
         disc_X_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
@@ -177,27 +189,12 @@ def main():
         disc_loss_fn=discriminator_loss_fn,
     )
 
-    # ganilla.fit(
-    #     tf.data.Dataset.zip((photo_data.train_data, illo_data.train_data)),
-    #     epochs=1,
-    # )
-
-    # ganilla.g1.summary()
-
 
     if ARGS.evaluate:
-        print("evaluating model...")
-        # test(model, datasets.test_data)
-
-        # change the image path to be the image of your choice by changing
-        # the lime-image flag when calling run.py to investigate
-        # i.e. python run.py --evaluate --lime-image test/Bedroom/image_003.jpg
-        # path = ARGS.data + os.sep + ARGS.lime_image
-        # LIME_explainer(model, path, datasets.preprocess_fn)
+        test(model, photo_data, illo_data, ARGS.load_checkpoint)
     else:
-        train(ganilla, photo_data, illo_data, checkpoint_path, logs_path, 0)
+        train(model, photo_data, illo_data, checkpoint_path, logs_path, init_epoch)
     
-
     ######## JUST TESTING GENERATOR
     # model = Generator()
     # model(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
@@ -205,38 +202,6 @@ def main():
     #     "ganilla" + os.sep + timestamp + os.sep
     # logs_path = "logs" + os.sep + "ganilla" + \
     #     os.sep + timestamp + os.sep
-
-   
-    # # Load checkpoints
-    # if ARGS.load_checkpoint is not None:
-    #     print("loading checkpoint...")
-    #     model.load_weights(ARGS.load_checkpoint, by_name=False)
-    #     # else:
-    #     #     model.head.load_weights(ARGS.load_checkpoint, by_name=False)
-
-    # # Make checkpoint directory if needed
-    # if not ARGS.evaluate and not os.path.exists(checkpoint_path):
-    #     os.makedirs(checkpoint_path)
-
-    # print("compiling model graph...")
-    # # Compile model graph
-    # model.compile(
-    #     # optimizer=model.optimizer,
-    #     # loss=model.loss_fn,
-    #     metrics=["gen_illos_loss", "gen_photos_loss", "disc_illos_loss", "disc_photos_loss"])
-
-    # if ARGS.evaluate:
-    #     test(model, datasets.test_data)
-
-    #     # change the image path to be the image of your choice by changing
-    #     # the lime-image flag when calling run.py to investigate
-    #     # i.e. python run.py --evaluate --lime-image test/Bedroom/image_003.jpg
-    #     path = ARGS.data + os.sep + ARGS.lime_image
-    #     LIME_explainer(model, path, datasets.preprocess_fn)
-    # else:
-    # train(model, checkpoint_path, logs_path, init_epoch)
-    
-
 
 # Make arguments global
 ARGS = parse_args()
