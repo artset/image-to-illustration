@@ -118,13 +118,16 @@ class CustomModelSaver(tf.keras.callbacks.Callback):
         
         if (epoch_str % 2 == 0):
             # make directory named timestamp/epoch_{epoch_str}
-            new_dir = "epoch_" + str(epoch_str)
+            if (epoch_str < 10):
+                new_dir = "epoch_" + "0" + str(epoch_str)
+            else:
+                new_dir = "epoch_" + str(epoch_str)
+
             os.mkdir(self.checkpoint_dir + os.sep + new_dir)
 
 
             # In that directory, save it
-
-            save_name = "weights.e{0:03d}.h5".format(epoch_str)
+            save_name = "weights.h5"
 
             self.model.g1.save_weights(self.checkpoint_dir + os.sep + new_dir + os.sep + "g1_" + save_name)
             self.model.g2.save_weights(self.checkpoint_dir + os.sep + new_dir + os.sep + "g2_" + save_name)
