@@ -53,83 +53,106 @@ class Generator(tf.keras.Model):
         self.kernel_init = tf.keras.initializers.RandomNormal(mean=0.0, stddev=0.02)
         
         self.downsampling = [
-            ReflectionPadding2D(padding=(3, 3)),
-            layers.Conv2D(64, (7, 7), kernel_initializer=self.kernel_init, use_bias=False),
-            tfa.layers.InstanceNormalization(gamma_initializer=self.gamma_init),
-            layers.Activation("relu"),
-            # downsampling blocks
-            Conv2D(128, kernel_size=(3,3), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
-            InstanceNormalization(gamma_initializer=self.gamma_init),
-            ReLU(),
-
-            Conv2D(256, kernel_size=(3,3), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
-            InstanceNormalization(gamma_initializer=self.gamma_init),
-            ReLU(),
+            layers.Conv2D(64, (7, 7), kernel_initializer=self.kernel_init, use_bias=False, padding="same", name="down_conv1"),
+            tfa.layers.InstanceNormalization(gamma_initializer=self.gamma_init, name="down_instancenorm"),
+            layers.Activation("relu")
         ]
 
-        self.resnet1 = [
-            ReflectionPadding2D(),
-            layers.Conv2D(256, kernel_size=(3,3), strides=(1,1), padding="valid", kernel_initializer=self.kernel_init, use_bias=False),
+        self.resnet1a = [
+            layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
             InstanceNormalization(gamma_initializer=self.gamma_init),
             ReLU(),
-
-            ReflectionPadding2D(),
-            layers.Conv2D(256, kernel_size=(3,3), strides=(1,1), padding="valid", kernel_initializer=self.kernel_init, use_bias=False),
-            InstanceNormalization(gamma_initializer=self.gamma_init),
+            layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+            InstanceNormalization(gamma_initializer=self.gamma_init)
         ]
 
-        self.resnet2 = [
-            ReflectionPadding2D(),
-            layers.Conv2D(256, kernel_size=(3,3), strides=(1,1), padding="valid", kernel_initializer=self.kernel_init, use_bias=False),
+        self.resnet1b = [
+            layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
             InstanceNormalization(gamma_initializer=self.gamma_init),
             ReLU(),
-
-            ReflectionPadding2D(),
-            layers.Conv2D(256, kernel_size=(3,3), strides=(1,1), padding="valid", kernel_initializer=self.kernel_init, use_bias=False),
-            InstanceNormalization(gamma_initializer=self.gamma_init),
+            layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+            InstanceNormalization(gamma_initializer=self.gamma_init)
         ]
 
-        self.upsampling = [
-            Conv2DTranspose(128, kernel_size=(3,3), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+        self.resnet2a = [
+            layers.Conv2D(64, kernel_size=(3,3), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
             InstanceNormalization(gamma_initializer=self.gamma_init),
             ReLU(),
+            layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+            InstanceNormalization(gamma_initializer=self.gamma_init)
+        ]
 
-            Conv2DTranspose(64, kernel_size=(3,3), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+        self.resnet2b = [
+            layers.Conv2D(128, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
             InstanceNormalization(gamma_initializer=self.gamma_init),
             ReLU(),
+            layers.Conv2D(128, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+            InstanceNormalization(gamma_initializer=self.gamma_init)
+        ]
 
-            ReflectionPadding2D(padding=(3, 3)),
-            layers.Conv2D(3, (7, 7), padding="valid"),
-            layers.Activation("tanh")
+        self.skip_mod = layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+        self.final_1a = layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+        self.final_1b = layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+        self.final_2a = layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+        self.final_2b = layers.Conv2D(128, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+
+        self.upsampling_beg = [
+            Conv2DTranspose(256, kernel_size=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+            UpSampling2D(size=(2,2), interpolation="nearest"),
+            layers.Conv2D(128, kernel_size=(1,1), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+        ]
+
+        self.upsampling_mod = Conv2DTranspose(256, kernel_size=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+
+        self.upsampling_end = [
+            Conv2DTranspose(64, kernel_size=(1,1), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+            Conv2DTranspose(3, kernel_size=(7,7), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
         ]
 
     def call(self, x):
-        num_downsampling_blocks = 2
-        num_residual_blocks = 9
-        num_upsample_blocks = 2
         print("----downsampling---")
         for l in self.downsampling:
             print("x", x.shape)
             x = l(x)
 
 
-        original = tf.identity(x)
+        original = x
         print("---- resnet1 ---")
-        for l in self.resnet1:
+        for l in self.resnet1a:
             print("x", x.shape)
             x = l(x)
-        x = layers.add([original, x])
-        original = tf.identity(x)
+        x = layers.Concatenate([original, x])
+        x = self.final_1a(x)
+        layer1a = x
+        for l in self.resnet1b:
+            print("x", x.shape)
+            x = l(x)
+        x = layers.Concatenate([layer1a, x])
+        x = self.final_1b(x)
+        layer1b = x
 
         print("---- resnet2 ---")
-        for l in self.resnet2:
+        for l in self.resnet2a:
             print("x", x.shape)
             x = l(x)
-        x = layers.add([original, x])
+        layer1b_mod = self.skip_mod(layer1b)
+        x = layers.Concatenate([layer1b_mod, x])
+        x = self.final_2a(x)
+        layer2a = x
+        for l in self.resnet2b:
+            print("x", x.shape)
+            x = l(x)
+        x = layers.Concatenate([layer2a, x])
+        x = self.final_2b(x)
+
 
         print("------ upsampling -- ")
-        # Final block
-        for l in self.upsampling:
+        for l in self.upsampling_beg:
+            print("x", x.shape)
+            x = l(x)
+        layer_1_up = self.upsampling_mod(layer1b)
+        x = layers.Add([layer_1_up, x])
+        for l in self.upsampling_end:
             print("x", x.shape)
             x = l(x)
 

@@ -209,14 +209,14 @@ class Generator(tf.keras.Model):
             # Original model seems to have a reflection pad, but not sure why
             # Block 1
             Conv2D(filters=64, kernel_size=7, strides=1, padding="same", name="block1_conv1"),
-            InstanceNormalization(gamma_initializer=GAMMA_INIT),
+            InstanceNormalization(gamma_initializer=GAMMA_INIT, name="block1_instancenorm"),
             ReLU() # seems to go after normalization not CONV2D, need to fact check if this is legit
             # MaxPool2D(2, name="block1_conv1"),   
         ]
 
         self.pre_upsample = [
             # Not sure about filters, strides, padding, or output padding here
-            Conv2DTranspose(filters=512, kernel_size=(1,1), padding="same")
+            Conv2DTranspose(filters=512, kernel_size=(1,1), padding="same", name="pre_conv2dt")
         ]
 
         self.pre_upsample_simple = [
@@ -226,8 +226,8 @@ class Generator(tf.keras.Model):
 
         self.post_upsample = [
             # Not sure about stride, padding, or output padding here
-            Conv2DTranspose(filters=64, kernel_size=(1,1), strides=1, padding="same"),
-            Conv2DTranspose(filters=3, kernel_size=(7,7), strides=1, padding="same")
+            Conv2DTranspose(filters=64, kernel_size=(1,1), strides=1, padding="same", name="post_conv2d_1"),
+            Conv2DTranspose(filters=3, kernel_size=(7,7), strides=1, padding="same", name="post_conv2d_2")
         ]
 
     # simplified call func 
@@ -356,23 +356,23 @@ class Generator(tf.keras.Model):
         if lay_type == "layer_1_a" or lay_type == "layer_b": 
             mod_resnet = [
                 Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(1,1), padding="same", 
-                    kernel_initializer=KERNEL_INIT, name="conv1"),
+                    kernel_initializer=KERNEL_INIT, name="res_conv1"),
                 InstanceNormalization(gamma_initializer=GAMMA_INIT),
                 ReLU(), 
                 #MaxPool2D(strides=2),
                 Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(1,1), padding="same", 
-                    kernel_initializer=KERNEL_INIT, name="conv2"),
+                    kernel_initializer=KERNEL_INIT, name="res_conv2"),
                 InstanceNormalization(gamma_initializer=GAMMA_INIT),
             ]
         elif lay_type == "layer_2_a":
             mod_resnet = [
                 Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(2,2), padding="same", 
-                    kernel_initializer=KERNEL_INIT, name="conv1"),
+                    kernel_initializer=KERNEL_INIT, name="res_conv1"),
                 InstanceNormalization(gamma_initializer=GAMMA_INIT),
                 ReLU(), 
                 #MaxPool2D(strides=2),
                 Conv2D(filters=filter_size, kernel_size=KERNEL_SIZE, strides=(1,1), padding="same", 
-                    kernel_initializer=KERNEL_INIT, name="conv2"),
+                    kernel_initializer=KERNEL_INIT, name="res_conv2"),
                 InstanceNormalization(gamma_initializer=GAMMA_INIT),
             ]
         
@@ -388,7 +388,7 @@ class Generator(tf.keras.Model):
         result = Concatenate()([output, inputs]) # "Skip concatenation" mentioned in paper, not sure if correctly implemented
 
         final_layer = [
-            Conv2D(filters=filter_size, kernel_size=3, strides=(1,1), padding="same", activation="relu", kernel_initializer=KERNEL_INIT)
+            Conv2D(filters=filter_size, kernel_size=3, strides=(1,1), padding="same", activation="relu", kernel_initializer=KERNEL_INIT, name="res_final_conv")
         ]
         result = final_layer[0](result)
 
