@@ -12,7 +12,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.layers import \
     Conv2D, MaxPool2D, Dropout, Flatten, Dense, AveragePooling2D, BatchNormalization, \
-    ZeroPadding2D, Conv2DTranspose, UpSampling2D, Concatenate, LeakyReLU, ReLU, Activation
+    ZeroPadding2D, Conv2DTranspose, UpSampling2D, Concatenate, LeakyReLU, ReLU, Activation, Add
 from tensorflow_addons.layers import InstanceNormalization
 from tensorflow.keras.losses import MeanAbsoluteError
 
@@ -121,13 +121,13 @@ class Generator(tf.keras.Model):
         for l in self.resnet1a:
             print("x", x.shape)
             x = l(x)
-        x = Concatenate([original, x])
+        x = Concatenate()([original, x])
         x = self.final_1a(x)
         layer1a = x
         for l in self.resnet1b:
             print("x", x.shape)
             x = l(x)
-        x = Concatenate([layer1a, x])
+        x = Concatenate()([layer1a, x])
         x = self.final_1b(x)
         layer1b = x
 
@@ -136,13 +136,13 @@ class Generator(tf.keras.Model):
             print("x", x.shape)
             x = l(x)
         layer1b_mod = self.skip_mod(layer1b)
-        x = Concatenate([layer1b_mod, x])
+        x = Concatenate()([layer1b_mod, x])
         x = self.final_2a(x)
         layer2a = x
         for l in self.resnet2b:
             print("x", x.shape)
             x = l(x)
-        x = Concatenate([layer2a, x])
+        x = Concatenate()([layer2a, x])
         x = self.final_2b(x)
 
 
@@ -151,7 +151,7 @@ class Generator(tf.keras.Model):
             print("x", x.shape)
             x = l(x)
         layer_1_up = self.upsampling_mod(layer1b)
-        x = layers.Add([layer_1_up, x])
+        x = Add()([layer_1_up, x])
         for l in self.upsampling_end:
             print("x", x.shape)
             x = l(x)
