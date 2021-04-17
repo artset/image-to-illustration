@@ -101,12 +101,11 @@ def train(model, photo_data, illo_data, checkpoint_path, logs_path, init_epoch, 
         callbacks=callback_list,
     )
 
-def test(model, photo_data, illo_data, checkpoint):
+def test(gen_G, gen_F, photo_data, illo_data, checkpoint):
     print("Testing model...")
-    """ Testing routine. """
 
     # Generates image
-    predictions, images = generate_illo(model, photo_data)
+    predictions, images = generate_illo(gen_G, photo_data)
     
     # TODO: Test Cyclical Nature for Reconstruction
 
@@ -117,9 +116,8 @@ def test(model, photo_data, illo_data, checkpoint):
     # )
 
 
-def generate_illo(model, photo_data):
-    model.load_weights(checkpoint).expect_partial()
-    prediction = model.g1(img, training=False)
+def generate_illo(generator, photo_data):
+    prediction = generator(photo_data, training=False)[0].numpy()
     predictions = (prediction * 127.5 + 127.5).astype(np.uint8)
     imgs = (imgs * 127.5 + 127.5).numpy().astype(np.uint8)
 
@@ -207,9 +205,9 @@ def main():
         # ARGS.load_checkpoint
         checkpoint = ARGS.load_checkpoint
         checkpoint_g1 = checkpoint + os.sep + "g1_weights.h5"
-        checkpoint_g2 = checkpoint + os.sep +"g2_weights.h5"
-        checkpoint_d1 = checkpoint + os.sep +"d1_weights.h5"
-        checkpoint_d2 = checkpoint + os.sep +"d2_weights.h5"
+        checkpoint_g2 = checkpoint + os.sep + "g2_weights.h5"
+        checkpoint_d1 = checkpoint + os.sep + "d1_weights.h5"
+        checkpoint_d2 = checkpoint + os.sep + "d2_weights.h5"
 
         gen_G.load_weights(checkpoint_g1, by_name=False)
         gen_F.load_weights(checkpoint_g2, by_name=False)
@@ -236,7 +234,7 @@ def main():
     )
 
     if ARGS.evaluate:
-        test(model, photo_data, illo_data, ARGS.load_checkpoint)
+        test(gen_G, gen_F, photo_data, illo_data, ARGS.load_checkpoint)
     else:
         train(model, photo_data, illo_data, checkpoint_path, logs_path, init_epoch, timestamp)
     

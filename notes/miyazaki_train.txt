@@ -1,0 +1,3 @@
+Epoch 0: gen1_loss: 3.4032 - gen2_loss: 3.7813 - disc1_loss: 0.5845 - disc2_loss: 0.5976
+Epoch 10: gen1_loss: 2.5605 - gen2_loss: 2.4891 - disc1_loss: 0.6153 - disc2_loss: 0.5684
+Epoch 20: gen1_loss: 2.4048 - gen2_loss: 2.3714 - disc1_loss: 0.5765 - disc2_loss: 0.5664

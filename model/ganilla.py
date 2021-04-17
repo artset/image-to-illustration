@@ -104,7 +104,10 @@ class Generator(tf.keras.Model):
 
         self.upsampling_end = [
             Conv2DTranspose(64, kernel_size=(1,1), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
-            Conv2DTranspose(3, kernel_size=(7,7), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+            InstanceNormalization(gamma_initializer=self.gamma_init),
+            ReLU(),
+            Conv2DTranspose(3, kernel_size=(7,7), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+            Activation("tanh")
         ]
 
     def call(self, x):
@@ -114,36 +117,36 @@ class Generator(tf.keras.Model):
             x = l(x)
 
 
-        original = x
+        original = tf.identity(x)
         # print("---- resnet1 ---")
         for l in self.resnet1a:
             # print("x", x.shape)
             x = l(x)
         x = Concatenate()([original, x])
         x = self.final_1a(x)
-        layer1a = x
+        layer1a = tf.identity(x)
         for l in self.resnet1b:
             # print("x", x.shape)
             x = l(x)
         x = Concatenate()([layer1a, x])
         x = self.final_1b(x)
-        layer1b = x
 
+        layer1b = tf.identity(x)
         # print("---- resnet2 ---")
         for l in self.resnet2a:
             # print("x", x.shape)
             x = l(x)
         layer1b_mod = self.skip_mod(layer1b)
         x = Concatenate()([layer1b_mod, x])
+
         x = self.final_2a(x)
-        layer2a = x
+        layer2a = tf.identity(x)
         for l in self.resnet2b:
             # print("x", x.shape)
             x = l(x)
         x = Concatenate()([layer2a, x])
+
         x = self.final_2b(x)
-
-
         # print("------ upsampling -- ")
         for l in self.upsampling_beg:
             # print("x", x.shape)
