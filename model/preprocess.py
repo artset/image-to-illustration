@@ -27,7 +27,7 @@ class Dataset():
         self.test_data = self.apply_preprocess(self.get_data(data_path_test, False, False)) # dont prprocess later
 
     def get_data(self, path, shuffle, augment):
-        dataset =tf.keras.preprocessing.image_dataset_from_directory(path, image_size=(512, 512), label_mode=None, shuffle=True, class_names=None)
+        dataset = tf.keras.preprocessing.image_dataset_from_directory(path, image_size=(512, 512), label_mode=None, shuffle=True, class_names=None, batch_size=1)
         return dataset
 
     def normalize_img(self, img):
@@ -40,8 +40,6 @@ class Dataset():
 
     def preprocess_train_image(self, img):
         # Random flip
-        # print(img.shape)
-        # print(img[0])
         img = img[0]
         img = tf.image.random_flip_left_right(img)
         # Resize to the original size first
@@ -59,6 +57,7 @@ class Dataset():
 			dataset.map(self.preprocess_train_image, num_parallel_calls=autotune)
 		)
         data = data.flat_map(self.flatten)
+        data = data.cache()
         data = data.shuffle(5000)
         data = data.batch(hp.batch_size)
         return data
