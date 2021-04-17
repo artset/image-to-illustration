@@ -183,8 +183,7 @@ def main():
     photo_data = Dataset("../data/train/landscape", "../data/test/landscape")
 
     np_photo = photo_data.train_data.as_numpy_iterator()
-    print(np_photo)
-
+    print("number of photos", len(list((np_photo))))
     np_illo = illo_data.train_data.as_numpy_iterator()
     print("number of illustrations", len(list((np_illo))))
 
