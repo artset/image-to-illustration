@@ -90,7 +90,7 @@ class Generator(tf.keras.Model):
             InstanceNormalization(gamma_initializer=self.gamma_init)
         ]
 
-        self.skip_mod = Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+        self.skip_mod = Conv2D(64, kernel_size=(3,3), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
         self.final_1a = Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
         self.final_1b = Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
         self.final_2a = Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
