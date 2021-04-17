@@ -63,36 +63,31 @@ class Generator(tf.keras.Model):
             InstanceNormalization(gamma_initializer=self.gamma_init),
             ReLU(),
             layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
-            InstanceNormalization(gamma_initializer=self.gamma_init),
+            InstanceNormalization(gamma_initializer=self.gamma_init)
         ]
 
         self.resnet1b = [
-            ReflectionPadding2D(),
             layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
             InstanceNormalization(gamma_initializer=self.gamma_init),
             ReLU(),
             layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
-            InstanceNormalization(gamma_initializer=self.gamma_init),
+            InstanceNormalization(gamma_initializer=self.gamma_init)
         ]
 
         self.resnet2a = [
-            ReflectionPadding2D(),
             layers.Conv2D(64, kernel_size=(3,3), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
             InstanceNormalization(gamma_initializer=self.gamma_init),
             ReLU(),
             layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
-            InstanceNormalization(gamma_initializer=self.gamma_init),
+            InstanceNormalization(gamma_initializer=self.gamma_init)
         ]
 
         self.resnet2b = [
-            ReflectionPadding2D(),
             layers.Conv2D(128, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
             InstanceNormalization(gamma_initializer=self.gamma_init),
             ReLU(),
-
-            ReflectionPadding2D(),
             layers.Conv2D(128, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
-            InstanceNormalization(gamma_initializer=self.gamma_init),
+            InstanceNormalization(gamma_initializer=self.gamma_init)
         ]
 
         self.skip_mod = layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
