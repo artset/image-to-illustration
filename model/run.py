@@ -10,10 +10,17 @@ import argparse
 import re
 from datetime import datetime
 import tensorflow as tf
+from tensorflow import keras
+
+from PIL import Image
+import matplotlib as mpl
 
 import hyperparameters as hp
-from models import Ganilla, Generator
-from preprocess import Datasets
+
+from preprocess import Dataset
+# from models import Ganilla, Generator
+from ganilla import Ganilla, gen_G, gen_F, disc_X, disc_Y
+
 from skimage.transform import resize
 from tensorboard_utils import  CustomModelSaver
 
@@ -21,6 +28,10 @@ from skimage.io import imread
 from skimage.segmentation import mark_boundaries
 from matplotlib import pyplot as plt
 import numpy as np
+
+from tensorflow.keras.losses import BinaryCrossentropy, MeanAbsoluteError
+
+
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -67,8 +78,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def train(model, datasets, checkpoint_path, logs_path, init_epoch):
-    """ Training routine. """
+def train(model, photo_data, illo_data, checkpoint_path, logs_path, init_epoch):
 
     # Keras callbacks for training
     callback_list = [
@@ -76,27 +86,15 @@ def train(model, datasets, checkpoint_path, logs_path, init_epoch):
             log_dir=logs_path,
             update_freq='batch',
             profile_batch=0),
-        # ImageLabelingLogger(logs_path, datasets),
         CustomModelSaver(checkpoint_path, hp.max_num_weights)
     ]
 
-    # Include confusion logger in callbacks if flag set
-    if ARGS.confusion:
-        callback_list.append(ConfusionMatrixLogger(logs_path, datasets))
-
-    train_data = np.zeros((5, 256, 256, 3))
-    # Begin training
     model.fit(
-        x = train_data,
-        # x=datasets.train_data,
-        # validation_data=datasets.test_data,
+        tf.data.Dataset.zip((photo_data.train_data, illo_data.train_data)),
         epochs=hp.num_epochs,
-        batch_size=None,
-        callbacks=callback_list,
         initial_epoch=init_epoch,
+        callbacks=callback_list,
     )
-    model.summary()
-
 
 # def test(model, test_data):
 #     """ Testing routine. """
@@ -106,6 +104,24 @@ def train(model, datasets, checkpoint_path, logs_path, init_epoch):
 #         x=test_data,
 #         verbose=1,
 #     )
+
+
+# Loss function for evaluating adversarial loss
+# bce = keras.losses.MeanAbsoluteError()
+bce = keras.losses.BinaryCrossentropy()
+
+
+# Define the loss function for the generators
+def generator_loss_fn(fake):
+    fake_loss = bce(tf.ones_like(fake), fake)
+    return fake_loss
+
+
+# Define the loss function for the discriminators
+def discriminator_loss_fn(real, fake):
+    real_loss = bce(tf.ones_like(real), real)
+    fake_loss = bce(tf.zeros_like(fake), fake)
+    return (real_loss + fake_loss) # * .5? 
 
 
 
@@ -126,28 +142,70 @@ def main():
         init_epoch = int(re.match(regex, ARGS.load_checkpoint).group(1)) + 1
         timestamp = os.path.basename(os.path.dirname(ARGS.load_checkpoint))
 
-    # If paths provided by program arguments are accurate, then this will
-    # ensure they are used. If not, these directories/files will be
-    # set relative to the directory of run.py
-    if os.path.exists(ARGS.data):
-        ARGS.data = os.path.abspath(ARGS.data)
-    if os.path.exists(ARGS.load_vgg):
-        ARGS.load_vgg = os.path.abspath(ARGS.load_vgg)
-
-    # Run script from location of run.py
-    os.chdir(sys.path[0])
-
-    datasets = Datasets(ARGS.data)
-
-    model = Generator()
-    model(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
     checkpoint_path = "checkpoints" + os.sep + \
         "ganilla" + os.sep + timestamp + os.sep
     logs_path = "logs" + os.sep + "ganilla" + \
         os.sep + timestamp + os.sep
 
-    # Print summary of model
+    if not ARGS.evaluate and not os.path.exists(checkpoint_path):
+        os.makedirs(checkpoint_path)
+
+    # If paths provided by program arguments are accurate, then this will
+    # ensure they are used. If not, these directories/files will be
+    # set relative to the directory of run.py
+    if os.path.exists(ARGS.data):
+        ARGS.data = os.path.abspath(ARGS.data)
     
+
+    # Run script from location of run.py
+    os.chdir(sys.path[0])
+
+    illo_data = Dataset("../data/train/illustration", "../data/test/illustration")
+    photo_data = Dataset("../data/train/landscape", "../data/test/landscape")
+
+    ganilla = Ganilla(
+        generator_G=gen_G, generator_F=gen_F, discriminator_X=disc_X, discriminator_Y=disc_Y
+    )
+
+    # Compile the model
+    ganilla.compile(
+        gen_G_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
+        gen_F_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
+        disc_X_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
+        disc_Y_optimizer=keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5),
+        gen_loss_fn=generator_loss_fn,
+        disc_loss_fn=discriminator_loss_fn,
+    )
+
+    # ganilla.fit(
+    #     tf.data.Dataset.zip((photo_data.train_data, illo_data.train_data)),
+    #     epochs=1,
+    # )
+
+    # ganilla.g1.summary()
+
+
+    if ARGS.evaluate:
+        print("evaluating model...")
+        # test(model, datasets.test_data)
+
+        # change the image path to be the image of your choice by changing
+        # the lime-image flag when calling run.py to investigate
+        # i.e. python run.py --evaluate --lime-image test/Bedroom/image_003.jpg
+        # path = ARGS.data + os.sep + ARGS.lime_image
+        # LIME_explainer(model, path, datasets.preprocess_fn)
+    else:
+        train(ganilla, photo_data, illo_data, checkpoint_path, logs_path, 0)
+    
+
+    ######## JUST TESTING GENERATOR
+    # model = Generator()
+    # model(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
+    # checkpoint_path = "checkpoints" + os.sep + \
+    #     "ganilla" + os.sep + timestamp + os.sep
+    # logs_path = "logs" + os.sep + "ganilla" + \
+    #     os.sep + timestamp + os.sep
+
    
     # # Load checkpoints
     # if ARGS.load_checkpoint is not None:
@@ -162,10 +220,10 @@ def main():
 
     # print("compiling model graph...")
     # # Compile model graph
-    model.compile(
-        # optimizer=model.optimizer,
-        # loss=model.loss_fn,
-        metrics=["gen_illos_loss", "gen_photos_loss", "disc_illos_loss", "disc_photos_loss"])
+    # model.compile(
+    #     # optimizer=model.optimizer,
+    #     # loss=model.loss_fn,
+    #     metrics=["gen_illos_loss", "gen_photos_loss", "disc_illos_loss", "disc_photos_loss"])
 
     # if ARGS.evaluate:
     #     test(model, datasets.test_data)
@@ -176,7 +234,7 @@ def main():
     #     path = ARGS.data + os.sep + ARGS.lime_image
     #     LIME_explainer(model, path, datasets.preprocess_fn)
     # else:
-    train(model, datasets, checkpoint_path, logs_path, init_epoch)
+    # train(model, checkpoint_path, logs_path, init_epoch)
     
 
 
