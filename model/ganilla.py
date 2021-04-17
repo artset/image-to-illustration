@@ -12,7 +12,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.layers import \
     Conv2D, MaxPool2D, Dropout, Flatten, Dense, AveragePooling2D, BatchNormalization, \
-    ZeroPadding2D, Conv2DTranspose, UpSampling2D, Concatenate, LeakyReLU, ReLU, Activation
+    ZeroPadding2D, Conv2DTranspose, UpSampling2D, Concatenate, LeakyReLU, ReLU, Activation, Add
 from tensorflow_addons.layers import InstanceNormalization
 from tensorflow.keras.losses import MeanAbsoluteError
 
@@ -22,11 +22,9 @@ import hyperparameters as hp
 # Need this for now -- do not change
 class ReflectionPadding2D(layers.Layer):
     """Implements Reflection Padding as a layer.
-
     Args:
         padding(tuple): Amount of padding for the
         spatial dimensions.
-
     Returns:
         A padded tensor with the same type as the input tensor.
     """
@@ -53,13 +51,13 @@ class Generator(tf.keras.Model):
         self.kernel_init = tf.keras.initializers.RandomNormal(mean=0.0, stddev=0.02)
         
         self.downsampling = [
-            layers.Conv2D(64, (7, 7), kernel_initializer=self.kernel_init, use_bias=False, padding="same", name="down_conv1"),
-            tfa.layers.InstanceNormalization(gamma_initializer=self.gamma_init, name="down_instancenorm"),
+            Conv2D(64, (7, 7), kernel_initializer=self.kernel_init, use_bias=False, padding="same", name="down_conv1"),
+            InstanceNormalization(gamma_initializer=self.gamma_init, name="down_instancenorm"),
             layers.Activation("relu")
         ]
 
         self.resnet1a = [
-            layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+            Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
             InstanceNormalization(gamma_initializer=self.gamma_init),
             ReLU(),
             layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
@@ -67,7 +65,7 @@ class Generator(tf.keras.Model):
         ]
 
         self.resnet1b = [
-            layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+            Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
             InstanceNormalization(gamma_initializer=self.gamma_init),
             ReLU(),
             layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
@@ -75,7 +73,7 @@ class Generator(tf.keras.Model):
         ]
 
         self.resnet2a = [
-            layers.Conv2D(64, kernel_size=(3,3), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+            Conv2D(64, kernel_size=(3,3), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
             InstanceNormalization(gamma_initializer=self.gamma_init),
             ReLU(),
             layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
@@ -83,30 +81,30 @@ class Generator(tf.keras.Model):
         ]
 
         self.resnet2b = [
-            layers.Conv2D(128, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+            Conv2D(128, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
             InstanceNormalization(gamma_initializer=self.gamma_init),
             ReLU(),
             layers.Conv2D(128, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
             InstanceNormalization(gamma_initializer=self.gamma_init)
         ]
 
-        self.skip_mod = layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
-        self.final_1a = layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
-        self.final_1b = layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
-        self.final_2a = layers.Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
-        self.final_2b = layers.Conv2D(128, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+        self.skip_mod = Conv2D(64, kernel_size=(3,3), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+        self.final_1a = Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+        self.final_1b = Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+        self.final_2a = Conv2D(64, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+        self.final_2b = Conv2D(128, kernel_size=(3,3), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
 
         self.upsampling_beg = [
             Conv2DTranspose(256, kernel_size=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
             UpSampling2D(size=(2,2), interpolation="nearest"),
-            layers.Conv2D(128, kernel_size=(1,1), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+            Conv2D(128, kernel_size=(1,1), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
         ]
 
-        self.upsampling_mod = Conv2DTranspose(256, kernel_size=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+        self.upsampling_mod = Conv2DTranspose(128, kernel_size=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
 
         self.upsampling_end = [
-            Conv2DTranspose(64, kernel_size=(1,1), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
-            Conv2DTranspose(3, kernel_size=(7,7), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+            Conv2DTranspose(64, kernel_size=(1,1), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+            Conv2DTranspose(3, kernel_size=(7,7), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
         ]
 
     def call(self, x):
@@ -121,13 +119,13 @@ class Generator(tf.keras.Model):
         for l in self.resnet1a:
             print("x", x.shape)
             x = l(x)
-        x = layers.Concatenate([original, x])
+        x = Concatenate()([original, x])
         x = self.final_1a(x)
         layer1a = x
         for l in self.resnet1b:
             print("x", x.shape)
             x = l(x)
-        x = layers.Concatenate([layer1a, x])
+        x = Concatenate()([layer1a, x])
         x = self.final_1b(x)
         layer1b = x
 
@@ -136,13 +134,13 @@ class Generator(tf.keras.Model):
             print("x", x.shape)
             x = l(x)
         layer1b_mod = self.skip_mod(layer1b)
-        x = layers.Concatenate([layer1b_mod, x])
+        x = Concatenate()([layer1b_mod, x])
         x = self.final_2a(x)
         layer2a = x
         for l in self.resnet2b:
             print("x", x.shape)
             x = l(x)
-        x = layers.Concatenate([layer2a, x])
+        x = Concatenate()([layer2a, x])
         x = self.final_2b(x)
 
 
@@ -151,7 +149,7 @@ class Generator(tf.keras.Model):
             print("x", x.shape)
             x = l(x)
         layer_1_up = self.upsampling_mod(layer1b)
-        x = layers.Add([layer_1_up, x])
+        x = Add()([layer_1_up, x])
         for l in self.upsampling_end:
             print("x", x.shape)
             x = l(x)
@@ -161,9 +159,7 @@ class Generator(tf.keras.Model):
 """
 The Discriminator model, leveraging PatchGAN architecture.
 Determines if the given image is generated or real.
-
 Nice explanation of PatchGAN first bit: https://sahiltinky94.medium.com/understanding-patchgan-9f3c8380c207
-
 Pix2Pix, could be relevant: https://machinelearningmastery.com/how-to-implement-pix2pix-gan-models-from-scratch-with-keras/
 """
 class Discriminator(tf.keras.Model):
