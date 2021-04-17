@@ -5,3 +5,4 @@ model/logs/*
 model/logs/
 model/checkpoints/*
 model/checkpoints/
+*/.DS_Store
