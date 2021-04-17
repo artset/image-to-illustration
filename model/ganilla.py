@@ -102,11 +102,11 @@ class Generator(tf.keras.Model):
             Conv2D(128, kernel_size=(1,1), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
         ]
 
-        self.upsampling_mod = Conv2DTranspose(256, kernel_size=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+        self.upsampling_mod = Conv2DTranspose(128, kernel_size=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
 
         self.upsampling_end = [
-            Conv2DTranspose(64, kernel_size=(1,1), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
-            Conv2DTranspose(3, kernel_size=(7,7), strides=(2,2), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
+            Conv2DTranspose(64, kernel_size=(1,1), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False),
+            Conv2DTranspose(3, kernel_size=(7,7), strides=(1,1), padding="same", kernel_initializer=self.kernel_init, use_bias=False)
         ]
 
     def call(self, x):
