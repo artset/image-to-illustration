@@ -116,7 +116,7 @@ class CustomModelSaver(tf.keras.callbacks.Callback):
         epoch_str = epoch + 1
 
         
-        if (epoch_str % 2 == 0):
+        if (epoch_str % 10 == 0):
             # make directory named timestamp/epoch_{epoch_str}
             if (epoch_str < 10):
                 new_dir = "epoch_" + "0" + str(epoch_str)

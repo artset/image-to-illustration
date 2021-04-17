@@ -108,50 +108,50 @@ class Generator(tf.keras.Model):
         ]
 
     def call(self, x):
-        print("----downsampling---")
+        # print("----downsampling---")
         for l in self.downsampling:
-            print("x", x.shape)
+            # print("x", x.shape)
             x = l(x)
 
 
         original = x
-        print("---- resnet1 ---")
+        # print("---- resnet1 ---")
         for l in self.resnet1a:
-            print("x", x.shape)
+            # print("x", x.shape)
             x = l(x)
         x = Concatenate()([original, x])
         x = self.final_1a(x)
         layer1a = x
         for l in self.resnet1b:
-            print("x", x.shape)
+            # print("x", x.shape)
             x = l(x)
         x = Concatenate()([layer1a, x])
         x = self.final_1b(x)
         layer1b = x
 
-        print("---- resnet2 ---")
+        # print("---- resnet2 ---")
         for l in self.resnet2a:
-            print("x", x.shape)
+            # print("x", x.shape)
             x = l(x)
         layer1b_mod = self.skip_mod(layer1b)
         x = Concatenate()([layer1b_mod, x])
         x = self.final_2a(x)
         layer2a = x
         for l in self.resnet2b:
-            print("x", x.shape)
+            # print("x", x.shape)
             x = l(x)
         x = Concatenate()([layer2a, x])
         x = self.final_2b(x)
 
 
-        print("------ upsampling -- ")
+        # print("------ upsampling -- ")
         for l in self.upsampling_beg:
-            print("x", x.shape)
+            # print("x", x.shape)
             x = l(x)
         layer_1_up = self.upsampling_mod(layer1b)
         x = Add()([layer_1_up, x])
         for l in self.upsampling_end:
-            print("x", x.shape)
+            # print("x", x.shape)
             x = l(x)
 
         return x
