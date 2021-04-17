@@ -169,6 +169,13 @@ def main():
     # Run script from location of run.py
     os.chdir(sys.path[0])
 
+    ### # TEMP TESTIN
+    # illo_data = Dataset("../data/train/illustration", "../data/test/illustration")
+    # illo_data.check_images("../data/test/illustration/miyazaki")
+    # photo_data = Dataset("../data/train/landscape", "../data/test/landscape")
+    # photo_data.check_images("../data/train/landscape/landscape")
+    # photo_data.check_images("../data/test/landscape/landscape")
+
     print("Loading datasets...")
     illo_data = Dataset("../data/train/illustration", "../data/test/illustration")
     photo_data = Dataset("../data/train/landscape", "../data/test/landscape")

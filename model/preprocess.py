@@ -59,7 +59,7 @@ class Dataset():
 			dataset.map(self.preprocess_train_image, num_parallel_calls=autotune)
 		)
         data = data.flat_map(self.flatten)
-        data = data.shuffle(10000)
+        data = data.shuffle(5000)
         data = data.batch(hp.batch_size)
         return data
 
@@ -78,3 +78,12 @@ class Dataset():
     #     plt.savefig("figure" + str(count))
     #     count += 1
         # break
+    
+    def check_images(self, filepath):
+        count = 0
+        
+        for filename in os.listdir(filepath):
+            count +=1
+            img = Image.open(filepath + os.sep + filename)
+            print(count, img.format, filepath)
+            
