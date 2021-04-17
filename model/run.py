@@ -19,7 +19,7 @@ import hyperparameters as hp
 
 from preprocess import Dataset
 # from models import Ganilla, Generator
-from ganilla import Ganilla, gen_G, gen_F, disc_X, disc_Y
+from ganilla import Ganilla, Generator, Discriminator
 
 from skimage.transform import resize
 from tensorboard_utils import  CustomModelSaver
@@ -78,14 +78,18 @@ def parse_args():
     return parser.parse_args()
 
 
-def train(model, photo_data, illo_data, checkpoint_path, logs_path, init_epoch):
+def train(model, photo_data, illo_data, checkpoint_path, logs_path, init_epoch, timestamp):
 
+    # checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+    #     filepath="checkpoints" + os.sep + timestamp + os.sep + "ganilla_{epoch:03d}", 
+    #     save_freq='epoch', period=2)
     # Keras callbacks for training
     callback_list = [
         tf.keras.callbacks.TensorBoard(
             log_dir=logs_path,
             update_freq='batch',
             profile_batch=0),
+        # checkpoint_callback
         CustomModelSaver(checkpoint_path, hp.max_num_weights)
     ]
 
@@ -99,6 +103,8 @@ def train(model, photo_data, illo_data, checkpoint_path, logs_path, init_epoch):
 def test(model, photo_data, illo_data, checkpoint):
     print("hello)")
     """ Testing routine. """
+
+    model.load_weights(checkpoint).expect_partial()
 
     # Run model on test set
     # model.evaluate(
@@ -132,12 +138,7 @@ def main():
     timestamp = time_now.strftime("%m%d%y-%H%M%S")
     init_epoch = 0
 
-    # If loading from a checkpoint, the loaded checkpoint's directory
-    # will be used for future checkpoints
-    if ARGS.load_checkpoint is not None:
-        ARGS.load_checkpoint = os.path.abspath(ARGS.load_checkpoint)
-        init_epoch = int(ARGS.load_checkpoint[-2:])
-        timestamp = os.path.basename(os.path.dirname(ARGS.load_checkpoint))
+
 
     checkpoint_path = "checkpoints" + os.sep + \
         "ganilla" + os.sep + timestamp + os.sep
@@ -159,9 +160,17 @@ def main():
     illo_data = Dataset("../data/train/illustration", "../data/test/illustration")
     photo_data = Dataset("../data/train/landscape", "../data/test/landscape")
 
-    model = Ganilla(
-        generator_G=gen_G, generator_F=gen_F, discriminator_X=disc_X, discriminator_Y=disc_Y
-    )
+    gen_G = Generator("G")
+    gen_F = Generator("F")
+    disc_X = Discriminator("X")
+    disc_Y = Discriminator("Y")
+
+    gen_G(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
+    gen_F(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
+    disc_X(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
+    disc_Y(tf.keras.Input(shape=(hp.img_size, hp.img_size, 3)))
+
+    disc_X.summary()
 
     if ARGS.load_checkpoint is not None:
         print("loading checkpoint...")
@@ -169,15 +178,28 @@ def main():
         # checkpoints/ganilla/<TIMESTAMP>/epoch_2/g1_weights.h5
         # ARGS.load_checkpoint
         checkpoint = ARGS.load_checkpoint
-        checkpoint_g1 = checkpoint + "g1_weights.h5"
-        checkpoint_g2 = checkpoint + "g2_weights.h5"
-        checkpoint_d1 = checkpoint + "d1_weights.h5"
-        checkpoint_d2 = checkpoint + "d2_weights.h5"
+        checkpoint_g1 = checkpoint + os.sep + "g1_weights.h5"
+        checkpoint_g2 = checkpoint + os.sep +"g2_weights.h5"
+        checkpoint_d1 = checkpoint + os.sep +"d1_weights.h5"
+        checkpoint_d2 = checkpoint + os.sep +"d2_weights.h5"
 
-        model.g1.load_weights(checkpoint_g1, by_name=False)
-        model.g2.load_weights(checkpoint_g2, by_name=False)
-        model.d1.load_weights(checkpoint_d1, by_name=False)
-        model.d2.load_weights(checkpoint_d2, by_name=False)
+        gen_G.load_weights(checkpoint_g1, by_name=False)
+        gen_F.load_weights(checkpoint_g2, by_name=False)
+        disc_X.load_weights(checkpoint_d1, by_name=False)
+        disc_Y.load_weights(checkpoint_d2, by_name=False)
+
+        absolute_path = os.path.abspath(ARGS.load_checkpoint)
+        init_epoch = int(absolute_path[-2:])
+        timestamp = os.path.basename(os.path.dirname(absolute_path))
+
+    model = Ganilla(
+        generator_G=gen_G, generator_F=gen_F, discriminator_X=disc_X, discriminator_Y=disc_Y
+    )
+
+    # If loading from a checkpoint, the loaded checkpoint's directory
+    # will be used for future checkpoints
+   
+
 
     # Compile the model
     model.compile(
@@ -189,11 +211,10 @@ def main():
         disc_loss_fn=discriminator_loss_fn,
     )
 
-
     if ARGS.evaluate:
         test(model, photo_data, illo_data, ARGS.load_checkpoint)
     else:
-        train(model, photo_data, illo_data, checkpoint_path, logs_path, init_epoch)
+        train(model, photo_data, illo_data, checkpoint_path, logs_path, init_epoch, timestamp)
     
     ######## JUST TESTING GENERATOR
     # model = Generator()
