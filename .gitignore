@@ -2,3 +2,7 @@
 __pycache__*
 ./data
 ./model/logs
+model/logs/*
+model/logs/
+model/checkpoints/*
+model/checkpoints/
