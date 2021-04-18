@@ -1,7 +1,8 @@
 Epoch 001: gen1_loss: 3.3265 - gen2_loss: 3.7586 - disc1_loss: 0.5827 - disc2_loss: 0.6184
 Epoch 010: gen1_loss: 2.9119 - gen2_loss: 3.8792 - disc1_loss: 0.4260 - disc2_loss: 0.5707
 Epoch 020: gen1_loss: 2.9773 - gen2_loss: 3.4661 - disc1_loss: 0.4762 - disc2_loss: 0.5182
-
+Epoch 030: gen1_loss: 3.0475 - gen2_loss: 3.5738 - disc1_loss: 0.4416 - disc2_loss: 0.4890
+Epoch 040: gen1_loss: 3.0850 - gen2_loss: 3.4672 - disc1_loss: 0.4437 - disc2_loss: 0.4740
 
 Reconstruction Evaluation:
 Reconstruction evaluation 18289908.07
