@@ -1,8 +1,4 @@
 .DS_Store
 __pycache__*
 ./model/logs
-model/logs/*
-model/logs/
-model/checkpoints/*
-model/checkpoints/
 */.DS_Store
