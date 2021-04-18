@@ -55,10 +55,16 @@ SAVE_COUNT = 5
   PLEASE update epoch count to the valid epoch so it saves in the proper folder.
   You can keep SAVE_COUNT as 5 to generate 5 generated images and 5 cyclied images.
 
-3) Type the following in the commandline w/ the valid dataset and epoch
+3) Type the following in the command line w/ the valid filepath to the checkpoint folder.
+Note this folder should contain 4 sets of h5 files (g1, g2, d1, d2)
+
 If you reformatted it diff and are doing locally:
 `python run.py --load-checkpoint checkpoints/{dataset}/epoch_{epoch} --evaluate`
 
 
 You might have to do this if you're on the VM:
 `python run.py --load-checkpoint checkpoints/{timestamp}/epoch_{epoch} --evaluate`
+
+
+4) It should generate images in the correct directories as well as print the psnr, ssim, and mse.
+I would put these in a text file in notes with the corresponding epoch for reference. 
