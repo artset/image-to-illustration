@@ -23,13 +23,14 @@ The data for this model can be found [here](https://github.com/artset/cs1430-fin
     - [x] Discriminator [Minna, Katherine]
     - [x] Ganilla model that puts everything together [Katherine]
 - [x] Progress Report [Minna, Katherine, Liyaan]
-- [ ] Training Model
-  - [ ] Miyazaki [Minna, Katherine]
-  - [ ] Elmer [Liyaan, Zoe]
+- [x] Training Model
+  - [x] Miyazaki [Minna, Katherine]
+  - [x] Elmer  - simple generator [Liyaan, Zoe]
+  - [ ] Elmer  - more complex generator [Liyaan, Zoe]
 - [x] Evaluation script
   - [x] Reconstruction Metrics [Minna, Katherine]
   - [x] Generate Sample images [Minna, Katherine]
-- [ ] Presentation slides
+- [ ] Presentation slides [Liyaan, Zoe]
 - [ ] Record Demo
 - [ ] Final Write Up
 
