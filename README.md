@@ -25,7 +25,7 @@ The data for this model can be found [here](https://github.com/artset/cs1430-fin
 - [x] Progress Report [Minna, Katherine, Liyaan]
 - [ ] Training Model
   - [ ] Miyazaki [Minna, Katherine]
-  - [ ] Elmer
+  - [ ] Elmer [Liyaan, Zoe]
 - [x] Evaluation script
   - [x] Reconstruction Metrics [Minna, Katherine]
   - [x] Generate Sample images [Minna, Katherine]
