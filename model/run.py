@@ -31,8 +31,10 @@ import numpy as np
 
 from tensorflow.keras.losses import BinaryCrossentropy, MeanAbsoluteError
 
+#TODO: Change these before running evaluate!
 DATASET_NAME = "miyazaki"
-
+EPOCH = 40
+SAVE_COUNT = 5
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -108,9 +110,9 @@ def test(gen1, gen2, photo_data, illo_data, checkpoint):
     illo_data = illo_data.test_data
 
     # Generates image
-    # generate_illo(gen1, photo_data)
+    generate_illo(gen1, photo_data, if_save=True)
 
-    print("Reconstruction evaluation", reconstruction_eval(gen1, gen2, photo_data))
+    print("Reconstruction evaluation", reconstruction_eval(gen1, gen2, photo_data, if_save=True))
 
 
 def convert_to_img(img_array):
@@ -119,16 +121,15 @@ def convert_to_img(img_array):
 
 def generate_illo(generator, photo_data, if_save=False):
     NUM_IMG = 4
-    EPOCH = 10
     count = 0
-    for img in photo_data.take(NUM_IMG):
+    for img in photo_data.take(SAVE_COUNT):
         count += 1
 
         prediction = generator(img, training=False)[0].numpy()
         prediction = convert_to_img(prediction)
 
         original = (img[0] * 127.5 + 127.5).numpy().astype(np.uint8) # converts img to [0, 255]
-        file_path = "generated" + os.sep + DATASET_NAME + os.sep + epoch_" + str(EPOCH)
+        file_path = "generated" + os.sep + DATASET_NAME + os.sep + "epoch_" + str(EPOCH)
 
         if if_save:
             if not os.path.exists(file_path):
@@ -143,9 +144,6 @@ def generate_illo(generator, photo_data, if_save=False):
 def reconstruction_eval(gen1, gen2, photo_data, if_save=False):
     summed = 0
     count = 0
-    SAVE_COUNT = 5
-    EPOCH = 10
-    NUM_IMAGES = 100
 
     for img in photo_data.take(NUM_IMAGES):
         fake_illo = gen1(img, training=False)
@@ -158,7 +156,7 @@ def reconstruction_eval(gen1, gen2, photo_data, if_save=False):
         count += 1
 
         if if_save:
-            file_path = "reconstructed" + os.sep + DATASET_NAME + os.sep + epoch_" + str(EPOCH)
+            file_path = "reconstructed" + os.sep + DATASET_NAME + os.sep + "epoch_" + str(EPOCH)
             if not os.path.exists(file_path):
                 os.makedirs(file_path)
 
