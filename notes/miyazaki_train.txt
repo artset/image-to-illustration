@@ -3,6 +3,17 @@ Epoch 010: gen1_loss: 2.9119 - gen2_loss: 3.8792 - disc1_loss: 0.4260 - disc2_lo
 Epoch 020: gen1_loss: 2.9773 - gen2_loss: 3.4661 - disc1_loss: 0.4762 - disc2_loss: 0.5182
 Epoch 030: gen1_loss: 3.0475 - gen2_loss: 3.5738 - disc1_loss: 0.4416 - disc2_loss: 0.4890
 Epoch 040: gen1_loss: 3.0850 - gen2_loss: 3.4672 - disc1_loss: 0.4437 - disc2_loss: 0.4740
+Epoch 050: gen1_loss: 3.2319 - gen2_loss: 3.5449 - disc1_loss: 0.4298 - disc2_loss: 0.4429
+Epoch 060: gen1_loss: 3.5271 - gen2_loss: 3.5742 - disc1_loss: 0.4182 - disc2_loss: 0.3947
+Epoch 070: gen1_loss: 3.4574 - gen2_loss: 3.4988 - disc1_loss: 0.4171 - disc2_loss: 0.3899
+Epoch 080: gen1_loss: 3.8482 - gen2_loss: 3.6038 - disc1_loss: 0.3921 - disc2_loss: 0.3444
+Epoch 090: gen1_loss: 3.9820 - gen2_loss: 3.6224 - disc1_loss: 0.3793 - disc2_loss: 0.3200
+Epoch 100: gen1_loss: 4.1548 - gen2_loss: 3.7788 - disc1_loss: 0.3619 - disc2_loss: 0.2993
+Epoch 110: gen1_loss: 4.5310 - gen2_loss: 4.0695 - disc1_loss: 0.3340 - disc2_loss: 0.2755
+Epoch 120: gen1_loss: 4.6646 - gen2_loss: 3.9662 - disc1_loss: 0.3483 - disc2_loss: 0.2634
 
 Reconstruction Evaluation:
-Reconstruction evaluation 18289908.07
+Epoch 40:
+MSE 417.1631241353353
+SSIM 0.7785370773916662
+PSNR 2283.1117414447467
