@@ -28,10 +28,10 @@ from tensorflow.keras.losses import BinaryCrossentropy, MeanAbsoluteError
 
 #TODO: Change these before running evaluate!
 DATASET_NAME = "miyazaki"
-EPOCH = 40
+EPOCH = 150
 SAVE_COUNT = 5
 
-NUM_IMAGES = 100 # number of images to evaluate on, this can stay at 100
+NUM_IMAGES = 5 # number of images to evaluate on, this can stay at 5-100
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -107,10 +107,10 @@ def test(gen1, gen2, photo_data, illo_data, checkpoint):
     illo_data = illo_data.test_data
 
     print("Generating images...")
-    generate_illo(gen1, photo_data, if_save=True)
+    generate_illo(gen1, photo_data, if_save=False)
 
     print("Starting reconstruction evaluation...")
-    reconstruction_eval(gen1, gen2, photo_data, if_save=True)
+    reconstruction_eval(gen1, gen2, photo_data, if_save=False)
 
 """ Converts to numy array to be an image"""
 def convert_to_img(img_array):
@@ -120,6 +120,8 @@ def convert_to_img(img_array):
 def generate_illo(generator, photo_data, if_save=False):
     NUM_IMG = 4
     count = 0
+
+    ssim = 0
     for img in photo_data.take(SAVE_COUNT):
         count += 1
 
@@ -127,6 +129,9 @@ def generate_illo(generator, photo_data, if_save=False):
         prediction = convert_to_img(prediction)
 
         original = (img[0] * 127.5 + 127.5).numpy().astype(np.uint8) # converts img to [0, 255]
+
+        ssim += structural_similarity(original, prediction, multichannel=True)
+
         file_path = "generated" + os.sep + DATASET_NAME + os.sep + "epoch_" + str(EPOCH)
 
         if if_save:
@@ -138,6 +143,7 @@ def generate_illo(generator, photo_data, if_save=False):
 
             original = keras.preprocessing.image.array_to_img(original)
             original.save(file_path + os.sep + "{i}_original.png".format(i=count))
+    print ("SSIM", ssim/count)
 
 def reconstruction_eval(gen1, gen2, photo_data, if_save=False):
     count = 0
