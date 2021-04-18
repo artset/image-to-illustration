@@ -1,3 +1,7 @@
-Epoch 0: gen1_loss: 3.4032 - gen2_loss: 3.7813 - disc1_loss: 0.5845 - disc2_loss: 0.5976
-Epoch 10: gen1_loss: 2.5605 - gen2_loss: 2.4891 - disc1_loss: 0.6153 - disc2_loss: 0.5684
-Epoch 20: gen1_loss: 2.4048 - gen2_loss: 2.3714 - disc1_loss: 0.5765 - disc2_loss: 0.5664
+Epoch 001: gen1_loss: 3.3265 - gen2_loss: 3.7586 - disc1_loss: 0.5827 - disc2_loss: 0.6184
+Epoch 010: gen1_loss: 2.9119 - gen2_loss: 3.8792 - disc1_loss: 0.4260 - disc2_loss: 0.5707
+Epoch 020: gen1_loss: 2.9773 - gen2_loss: 3.4661 - disc1_loss: 0.4762 - disc2_loss: 0.5182
+
+
+Reconstruction Evaluation:
+Reconstruction evaluation 18289908.07

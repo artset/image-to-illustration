@@ -34,3 +34,14 @@ The data for this model can be found [here](https://github.com/artset/cs1430-fin
 - [ ] Final Write Up
 
 
+
+
+#### To run evaluation:
+
+python run.py --load-checkpoint checkpoints/{dataset}/epoch_{epoch} --evaluate
+
+Make sure to comment in 
+reconstruction_eval or generate_illo
+depending on the evaluation task you would like to perform.
+
+dataset options: elmer, miyazaki

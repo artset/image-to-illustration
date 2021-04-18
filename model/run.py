@@ -31,6 +31,7 @@ import numpy as np
 
 from tensorflow.keras.losses import BinaryCrossentropy, MeanAbsoluteError
 
+DATASET_NAME = "miyazaki"
 
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -101,29 +102,77 @@ def train(model, photo_data, illo_data, checkpoint_path, logs_path, init_epoch, 
         callbacks=callback_list,
     )
 
-def test(gen_G, gen_F, photo_data, illo_data, checkpoint):
+def test(gen1, gen2, photo_data, illo_data, checkpoint):
     print("Testing model...")
+    photo_data = photo_data.test_data
+    illo_data = illo_data.test_data
 
     # Generates image
-    predictions, images = generate_illo(gen_G, photo_data)
-    
-    # TODO: Test Cyclical Nature for Reconstruction
+    # generate_illo(gen1, photo_data)
 
-    # Run model on test set
-    # model.evaluate(
-    #     x=test_data,
-    #     verbose=1,
-    # )
+    print("Reconstruction evaluation", reconstruction_eval(gen1, gen2, photo_data))
 
 
-def generate_illo(generator, photo_data):
-    prediction = generator(photo_data, training=False)[0].numpy()
-    predictions = (prediction * 127.5 + 127.5).astype(np.uint8)
-    imgs = (imgs * 127.5 + 127.5).numpy().astype(np.uint8)
+def convert_to_img(img_array):
+    img_array = (img_array * 127.5 + 127.5).astype(np.uint8)
+    return img_array
 
-    # TODO: Save generated images to pill
+def generate_illo(generator, photo_data, if_save=False):
+    NUM_IMG = 4
+    EPOCH = 10
+    count = 0
+    for img in photo_data.take(NUM_IMG):
+        count += 1
 
-    return predictions, imgs
+        prediction = generator(img, training=False)[0].numpy()
+        prediction = convert_to_img(prediction)
+
+        original = (img[0] * 127.5 + 127.5).numpy().astype(np.uint8) # converts img to [0, 255]
+        file_path = "generated" + os.sep + DATASET_NAME + os.sep + epoch_" + str(EPOCH)
+
+        if if_save:
+            if not os.path.exists(file_path):
+                os.makedirs(file_path)
+
+            prediction = keras.preprocessing.image.array_to_img(prediction)
+            prediction.save(file_path + os.sep + "{i}_generated.png".format(i=count))
+
+            original = keras.preprocessing.image.array_to_img(original)
+            original.save(file_path + os.sep + "{i}_original.png".format(i=count))
+
+def reconstruction_eval(gen1, gen2, photo_data, if_save=False):
+    summed = 0
+    count = 0
+    SAVE_COUNT = 5
+    EPOCH = 10
+    NUM_IMAGES = 100
+
+    for img in photo_data.take(NUM_IMAGES):
+        fake_illo = gen1(img, training=False)
+        fake_photo = gen2(fake_illo, training=False)[0].numpy()
+
+        fake_photo = convert_to_img(fake_photo)
+        original = (img[0] * 127.5 + 127.5).numpy().astype(np.uint8) # converts img to [0, 255]
+
+        summed += np.sum(np.square(original - fake_photo))
+        count += 1
+
+        if if_save:
+            file_path = "reconstructed" + os.sep + DATASET_NAME + os.sep + epoch_" + str(EPOCH)
+            if not os.path.exists(file_path):
+                os.makedirs(file_path)
+
+            if count <= SAVE_COUNT:
+                fake_photo = keras.preprocessing.image.array_to_img(fake_photo)
+                fake_photo.save(file_path + os.sep + "{i}_cycled.png".format(i=count))
+
+                original = keras.preprocessing.image.array_to_img(original)
+                original.save(file_path + os.sep + "{i}_original.png".format(i=count))
+
+        if count % 20 == 0:
+            print(count)
+    mse = summed / NUM_IMAGES
+    return mse
 
 
 # Loss function for evaluating adversarial loss
