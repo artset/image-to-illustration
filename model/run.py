@@ -29,7 +29,7 @@ from tensorflow.keras.losses import BinaryCrossentropy, MeanAbsoluteError
 #TODO: Change these before running evaluate!
 DATASET_NAME = "miyazaki"
 EPOCH = 150
-SAVE_COUNT = 5
+SAVE_COUNT = 10
 
 NUM_IMAGES = 5 # number of images to evaluate on, this can stay at 5-100
 
@@ -107,10 +107,10 @@ def test(gen1, gen2, photo_data, illo_data, checkpoint):
     illo_data = illo_data.test_data
 
     print("Generating images...")
-    generate_illo(gen1, photo_data, if_save=False)
+    generate_illo(gen1, photo_data, if_save=True)
 
     print("Starting reconstruction evaluation...")
-    reconstruction_eval(gen1, gen2, photo_data, if_save=False)
+    reconstruction_eval(gen1, gen2, photo_data, if_save=True)
 
 """ Converts to numy array to be an image"""
 def convert_to_img(img_array):
