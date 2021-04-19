@@ -195,6 +195,7 @@ class Generator(tf.keras.Model):
             # print("x", x.shape)
             x = l(x)
         x = Concatenate()([layer2a, x])
+        x = self.final_2b(x)
 
         layer2b = tf.identity(x)
         # print("---- resnet3 ---")
@@ -210,6 +211,7 @@ class Generator(tf.keras.Model):
             # print("x", x.shape)
             x = l(x)
         x = Concatenate()([layer3a, x])
+        x = self.final_3b(x)
 
         layer3b = tf.identity(x)
         # print("---- resnet3 ---")
