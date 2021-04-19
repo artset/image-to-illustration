@@ -26,7 +26,7 @@ def main(opts):
     #     else:
     #         olh.search_author(illustrator, dir_name, [])
 
-    olh.search_book("Lord Rex, the lion who wished", "data", page_start=0, book_index=1)
+    olh.search_book("Elmer", "data", page_start=0, book_index=1)
 
 
 if __name__ == "__main__":
