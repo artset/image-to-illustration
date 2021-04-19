@@ -186,7 +186,7 @@ class Generator(tf.keras.Model):
         for l in self.resnet2a:
             # print("x", x.shape)
             x = l(x)
-        layer1b_mod = self.skip_mod_1(layer1b)
+        layer1b_mod = self.skip_mod_2(layer1b)
         x = Concatenate()([layer1b_mod, x])
 
         x = self.final_2a(x)
