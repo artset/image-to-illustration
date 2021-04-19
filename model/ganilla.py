@@ -236,7 +236,7 @@ class Generator(tf.keras.Model):
         for l in self.upsampling_2:
             # print("x", x.shape)
             x = l(x)
-        layer_2_up = self.upsampling_mod_2layer2b)
+        layer_2_up = self.upsampling_mod_2(layer2b)
         x = Add()([layer_2_up, x])
         for l in self.upsampling_3:
             # print("x", x.shape)
