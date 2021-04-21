@@ -10,9 +10,9 @@ The data for this model can be found [here](https://github.com/artset/cs1430-fin
 #### TODO
 - [x] GCP set up VM + Buckets [Katherine]
 - [x] Preprocessing 
-  - [x] Write script to scrape from OpenLibrary [Minna, Katherine, Zoe, Liyaan]
+  - [x] Write script to scrape from OpenLibrary [Minna, Katherine]
   - [x] Scrape illustration data from OpenLibrary [Katherine]
-  - [x] Get landscape data from CycleGAN dataset/Kaggle [Zoe, Liyaan, Minna]
+  - [x] Download landscape data Kaggle [Zoe, Liyaan, Minna]
   - [x] Scrape Miyazaki images from Google Images [Minna, Katherine]
   - [x] Write preprocessing script to prepare images for model  [Minna, Katherine]
 - [x] Model 
@@ -25,25 +25,12 @@ The data for this model can be found [here](https://github.com/artset/cs1430-fin
 - [x] Progress Report [Minna, Katherine, Liyaan]
 - [x] Training Model
   - [x] Miyazaki [Minna, Katherine]
-<<<<<<< HEAD
-  - [x] Elmer  - simple generator [Liyaan, Zoe]
-  - [x] Elmer  - more complex generator [Liyaan, Zoe]
-- [x] Evaluation script
-  - [x] Reconstruction Metrics [Minna, Katherine]
-  - [x] Generate Sample images [Minna, Katherine]
-- [x] Presentation slides [Liyaan, Zoe]
-- [ ] Record Demo
-- [ ] Final Write Up
-=======
   - [x] Elmer  - simple generator and complex generator [Liyaan, Zoe]
 - [x] Evaluation script
   - [x] Reconstruction Metrics [Minna, Katherine]
   - [x] Generate Sample images [Minna, Katherine]
 - [x] Presentation slides [All]
 - [ ] Final Write Up [All]
->>>>>>> miyazaki
-
-
 
 
 #### To run evaluation:
