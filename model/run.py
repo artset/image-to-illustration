@@ -28,10 +28,10 @@ from tensorflow.keras.losses import BinaryCrossentropy, MeanAbsoluteError
 
 #TODO: Change these before running evaluate!
 DATASET_NAME = "elmer"
-EPOCH = 10
-SAVE_COUNT = 5
+EPOCH = 110
+SAVE_COUNT = 20
 
-NUM_IMAGES = 100 # number of images to evaluate on, this can stay at 100
+NUM_IMAGES = 1 # number of images to evaluate on, this can stay at 100
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -118,7 +118,6 @@ def convert_to_img(img_array):
     return img_array
 
 def generate_illo(generator, photo_data, if_save=False):
-    NUM_IMG = 4
     count = 0
     for img in photo_data.take(SAVE_COUNT):
         count += 1

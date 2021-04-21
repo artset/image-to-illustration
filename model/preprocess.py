@@ -14,6 +14,7 @@ tfds.disable_progress_bar()
 autotune = tf.data.experimental.AUTOTUNE
 
 orig_img_size = (512, 512)
+test_img_size = (256, 256)
 input_img_size = (256, 256, 3)
 
 
@@ -23,8 +24,8 @@ class Dataset():
     for preprocessing.
     """
     def __init__(self, data_path_train, data_path_test):
-        self.train_data = self.apply_preprocess(self.get_data(data_path_train, True, True))
-        self.test_data = self.apply_preprocess(self.get_data(data_path_test, False, False)) # dont prprocess later
+        self.train_data = self.apply_preprocess(self.get_data(data_path_train, True, True), if_test=False)
+        self.test_data = self.apply_preprocess(self.get_data(data_path_test, False, False), if_test=True) # dont prprocess later
 
     def get_data(self, path, shuffle, augment):
         dataset = tf.keras.preprocessing.image_dataset_from_directory(path, image_size=(512, 512), label_mode=None, shuffle=True, class_names=None, batch_size=1)
@@ -36,6 +37,13 @@ class Dataset():
 
     def flatten(self, *x):
         return tf.data.Dataset.from_tensor_slices([i for i in x])
+
+    def preprocess_test_image(self, img):
+        img = img[0]
+
+        img = tf.image.resize(img, [*test_img_size])
+        img = self.normalize_img(img)
+        return img
 
 
     def preprocess_train_image(self, img):
@@ -52,10 +60,15 @@ class Dataset():
         other_img = self.normalize_img(other_img)
         return img, other_img
 
-    def apply_preprocess(self, dataset):
-        data = (
-			dataset.map(self.preprocess_train_image, num_parallel_calls=autotune)
-		)
+    def apply_preprocess(self, dataset, if_test):
+        if if_test:
+            data = (
+                dataset.map(self.preprocess_test_image, num_parallel_calls=autotune)
+            )
+        else:
+            data = (
+                dataset.map(self.preprocess_train_image, num_parallel_calls=autotune)
+            )
         data = data.flat_map(self.flatten)
         data = data.cache()
         data = data.shuffle(5000)
@@ -105,4 +118,3 @@ class Dataset():
             # check if file is GIF
             else:
                 print(filename+" is: invalid.")
-                
