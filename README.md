@@ -26,11 +26,11 @@ The data for this model can be found [here](https://github.com/artset/cs1430-fin
 - [x] Training Model
   - [x] Miyazaki [Minna, Katherine]
   - [x] Elmer  - simple generator [Liyaan, Zoe]
-  - [ ] Elmer  - more complex generator [Liyaan, Zoe]
+  - [x] Elmer  - more complex generator [Liyaan, Zoe]
 - [x] Evaluation script
   - [x] Reconstruction Metrics [Minna, Katherine]
   - [x] Generate Sample images [Minna, Katherine]
-- [ ] Presentation slides [Liyaan, Zoe]
+- [x] Presentation slides [Liyaan, Zoe]
 - [ ] Record Demo
 - [ ] Final Write Up
 
