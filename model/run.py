@@ -28,7 +28,7 @@ from tensorflow.keras.losses import BinaryCrossentropy, MeanAbsoluteError
 
 #TODO: Change these before running evaluate!
 DATASET_NAME = "miyazaki"
-EPOCH = 170
+EPOCH = 200
 SAVE_COUNT = 10
 
 NUM_IMAGES = 100 # number of images to evaluate on, this can stay at 5-100
