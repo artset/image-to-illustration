@@ -27,9 +27,15 @@ import numpy as np
 from tensorflow.keras.losses import BinaryCrossentropy, MeanAbsoluteError
 
 #TODO: Change these before running evaluate!
+<<<<<<< HEAD
 DATASET_NAME = "elmer"
 EPOCH = 110
 SAVE_COUNT = 20
+=======
+DATASET_NAME = "elmer_take2"
+EPOCH = 120
+SAVE_COUNT = 5
+>>>>>>> 0d02be4dbe7fbbc1c898a6e32f45371c1432aecb
 
 NUM_IMAGES = 1 # number of images to evaluate on, this can stay at 100
 
