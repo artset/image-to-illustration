@@ -1,49 +1,18 @@
-"""
-Project 4 - CNNs
-CS1430 - Computer Vision
-Brown University
-"""
-
 import tensorflow as tf
 import tensorflow_addons as tfa
- 
 from tensorflow import keras
-
 from tensorflow.keras import layers
 from tensorflow.keras.layers import \
-    Conv2D, MaxPool2D, Dropout, Flatten, Dense, AveragePooling2D, BatchNormalization, \
-    ZeroPadding2D, Conv2DTranspose, UpSampling2D, Concatenate, LeakyReLU, ReLU, Activation, Add
+    Conv2D, Flatten, Dense, \
+    Conv2DTranspose, UpSampling2D, Concatenate, LeakyReLU, ReLU, Activation, Add
 from tensorflow_addons.layers import InstanceNormalization
 from tensorflow.keras.losses import MeanAbsoluteError
 
 import hyperparameters as hp
 
-
-# Need this for now -- do not change
-class ReflectionPadding2D(layers.Layer):
-    """Implements Reflection Padding as a layer.
-    Args:
-        padding(tuple): Amount of padding for the
-        spatial dimensions.
-    Returns:
-        A padded tensor with the same type as the input tensor.
-    """
-
-    def __init__(self, padding=(1, 1), **kwargs):
-        self.padding = tuple(padding)
-        super(ReflectionPadding2D, self).__init__(**kwargs)
-
-    def call(self, input_tensor, mask=None):
-        padding_width, padding_height = self.padding
-        padding_tensor = [
-            [0, 0],
-            [padding_height, padding_height],
-            [padding_width, padding_width],
-            [0, 0],
-        ]
-        return tf.pad(input_tensor, padding_tensor, mode="REFLECT")
-
-
+"""
+Generator model using upsampling/downsampling
+"""
 class Generator(tf.keras.Model):
     def __init__(self, name=None):
         super(Generator, self).__init__()
@@ -162,8 +131,6 @@ class Generator(tf.keras.Model):
 """
 The Discriminator model, leveraging PatchGAN architecture.
 Determines if the given image is generated or real.
-Nice explanation of PatchGAN first bit: https://sahiltinky94.medium.com/understanding-patchgan-9f3c8380c207
-Pix2Pix, could be relevant: https://machinelearningmastery.com/how-to-implement-pix2pix-gan-models-from-scratch-with-keras/
 """
 class Discriminator(tf.keras.Model):
     def __init__(self, name=None):
@@ -215,12 +182,10 @@ class Discriminator(tf.keras.Model):
 
         return bce(truth_real, disc_real_output) + bce(truth_fake, disc_fake_output)
 
-gen_G = Generator("G")
-gen_F = Generator("F")
-
-disc_X = Discriminator(name="X")
-disc_Y = Discriminator(name="Y")
-
+"""
+Ganilla model that puts everything together.
+Uses cycled and identity loss.
+"""
 class Ganilla(keras.Model):
     def __init__(
         self,
@@ -239,15 +204,7 @@ class Ganilla(keras.Model):
         self.lambda_cycle = lambda_cycle
         self.lambda_identity = lambda_identity
 
-    def compile(
-        self,
-        gen_G_optimizer,
-        gen_F_optimizer,
-        disc_X_optimizer,
-        disc_Y_optimizer,
-        gen_loss_fn,
-        disc_loss_fn,
-    ):
+    def compile(self, gen_G_optimizer, gen_F_optimizer, disc_X_optimizer, disc_Y_optimizer, gen_loss_fn, disc_loss_fn):
         super(Ganilla, self).compile()
         self.gen_G_optimizer = gen_G_optimizer
         self.gen_F_optimizer = gen_F_optimizer
@@ -269,7 +226,6 @@ class Ganilla(keras.Model):
             # Discriminator output
             disc_real_x = self.d1(real_photo, training=True)
             disc_fake_x = self.d1(fake_x, training=True)
-
             disc_real_y = self.d2(real_illo, training=True)
             disc_fake_y = self.d2(fake_y, training=True)
 
@@ -286,16 +242,8 @@ class Ganilla(keras.Model):
             # Generator identity loss
             same_x = self.g2(real_photo, training=True)
             same_y = self.g1(real_illo, training=True)
-            id_loss_G = (
-                self.identity_loss_fn(real_illo, same_y)
-                * self.lambda_cycle
-                * self.lambda_identity
-            )
-            id_loss_F = (
-                self.identity_loss_fn(real_photo, same_x)
-                * self.lambda_cycle
-                * self.lambda_identity
-            )
+            id_loss_G = (self.identity_loss_fn(real_illo, same_y) * self.lambda_cycle * self.lambda_identity)
+            id_loss_F = (self.identity_loss_fn(real_photo, same_x) * self.lambda_cycle * self.lambda_identity)
 
             # Total generator loss
             total_loss_G = gen_G_loss + cycle_loss_G + id_loss_G
@@ -314,20 +262,12 @@ class Ganilla(keras.Model):
         disc_Y_grads = tape.gradient(disc_Y_loss, self.d2.trainable_variables)
 
         # Update the weights of the generators
-        self.gen_G_optimizer.apply_gradients(
-            zip(grads_G, self.g1.trainable_variables)
-        )
-        self.gen_F_optimizer.apply_gradients(
-            zip(grads_F, self.g2.trainable_variables)
-        )
+        self.gen_G_optimizer.apply_gradients(zip(grads_G, self.g1.trainable_variables))
+        self.gen_F_optimizer.apply_gradients(zip(grads_F, self.g2.trainable_variables))
 
         # Update the weights of the discriminators
-        self.disc_X_optimizer.apply_gradients(
-            zip(disc_X_grads, self.d1.trainable_variables)
-        )
-        self.disc_Y_optimizer.apply_gradients(
-            zip(disc_Y_grads, self.d2.trainable_variables)
-        )
+        self.disc_X_optimizer.apply_gradients(zip(disc_X_grads, self.d1.trainable_variables))
+        self.disc_Y_optimizer.apply_gradients(zip(disc_Y_grads, self.d2.trainable_variables))
 
         return {
             "gen1_loss": total_loss_G,
