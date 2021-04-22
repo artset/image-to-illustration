@@ -51,7 +51,7 @@ You might have to do this if you're on the VM:
 #### Contributions
 - [x] GCP set up VM + Buckets [Katherine]
 - [x] Preprocessing 
-  - [x] Write script to scrape from OpenLibrary [Minna, Katherine, Liyaan]
+  - [x] Write script to scrape from OpenLibrary [Minna, Katherine, Liyaan, Zoe]
   - [x] Scrape illustration data from OpenLibrary [Katherine]
   - [x] Get landscape data from CycleGAN dataset/Kaggle [Zoe, Liyaan, Minna]
   - [x] Scrape Miyazaki images from Google Images [Minna, Katherine]
