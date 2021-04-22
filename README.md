@@ -10,7 +10,7 @@ The data for this model can be found [here](https://github.com/artset/cs1430-fin
 #### TODO
 - [x] GCP set up VM + Buckets [Katherine]
 - [x] Preprocessing 
-  - [x] Write script to scrape from OpenLibrary [Minna, Katherine]
+  - [x] Write script to scrape from OpenLibrary [Minna, Katherine, Zoe, Liyaan]
   - [x] Scrape illustration data from OpenLibrary [Katherine]
   - [x] Download landscape data Kaggle [Zoe, Liyaan, Minna]
   - [x] Scrape Miyazaki images from Google Images [Minna, Katherine]
@@ -29,6 +29,9 @@ The data for this model can be found [here](https://github.com/artset/cs1430-fin
 - [x] Evaluation script
   - [x] Reconstruction Metrics [Minna, Katherine]
   - [x] Generate Sample images [Minna, Katherine]
+- [x] Testing Models
+  - [x] Miyazaki results [Minna, Katherine]
+  - [x] Elmer results - simple generator and complex generator [Liyaan, Zoe]
 - [x] Presentation slides [All]
 - [ ] Final Write Up [All]
 
